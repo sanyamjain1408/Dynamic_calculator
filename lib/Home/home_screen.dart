@@ -1,8 +1,10 @@
 import 'package:calculator/Home/bank/bank_screen.dart';
 import 'package:calculator/Home/ca/ca_screen.dart';
 import 'package:calculator/Home/calculator/calculator_screen.dart';
+import 'package:calculator/Home/history/history_screen.dart';
 import 'package:calculator/Home/insurance/insurance_screen.dart';
-import 'package:calculator/widgets/appdrawer.dart';
+import 'package:calculator/Home/profile_screen.dart';
+import 'package:calculator/Home/second_screen.dart';
 import 'package:flutter/material.dart';
 import '../widgets/header.dart';
 import '../widgets/bottom_nav.dart';
@@ -23,9 +25,9 @@ class _HomeScreenState extends State<HomeScreen> {
   /// ✅ CENTER PAGES LIST
   final List<Widget> pages = const [
     CalculatorScreen(),   // Calc
-    CaScreen(),     // CA
-    BankScreen(),   // Bank
-    InsuranceScreen(), // Insurance
+    SecondScreen(),     // CA
+    HistoryScreen(),   // History
+    ProfileScreen(),   // Profile
     
   ];
 
@@ -34,8 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       key: _scaffoldKey,
 
-      /// Drawer
-      drawer: const AppDrawer(),
 
       /// 🔒 HEADER (STATIC)
       appBar: PreferredSize(

@@ -1,33 +1,50 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
-class CaTdsScreen extends StatefulWidget {
-  const CaTdsScreen({super.key});
+class CaEMIScreen extends StatefulWidget {
+  const CaEMIScreen({super.key});
 
   @override
-  State<CaTdsScreen> createState() => _CaTdsScreenState();
+  State<CaEMIScreen> createState() => _CaEMIScreenState();
 }
 
-class _CaTdsScreenState extends State<CaTdsScreen> {
+class _CaEMIScreenState extends State<CaEMIScreen> {
 
-  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _loanController = TextEditingController();
+  final TextEditingController _rateController = TextEditingController();
+  final TextEditingController _timeController = TextEditingController();
 
-  double selectedTdsRate = 1; // default 1%
-  double netAmount = 0;
-  double tdsAmount = 0;
+  double emi = 0;
+  double principalAmount = 0;
+  double totalInterest = 0;
   double totalAmount = 0;
 
-  void calculateTDS() {
+  void calculateEMI() {
     FocusScope.of(context).unfocus();
 
-    double amount = double.tryParse(_amountController.text) ?? 0;
+    double principal = double.tryParse(_loanController.text) ?? 0;
+    double annualRate = double.tryParse(_rateController.text) ?? 0;
+    double years = double.tryParse(_timeController.text) ?? 0;
 
-    if (amount <= 0) return;
+    if (principal <= 0 || annualRate <= 0 || years <= 0) return;
 
-    netAmount = amount;
-    tdsAmount = (amount * selectedTdsRate) / 100;
-    totalAmount = amount - tdsAmount;
+    double monthlyRate = annualRate / 12 / 100;
+    int months = (years * 12).toInt();
 
-    setState(() {});
+    double emiValue = (principal *
+            monthlyRate *
+            pow((1 + monthlyRate), months)) /
+        (pow((1 + monthlyRate), months) - 1);
+
+    double totalPayment = emiValue * months;
+    double interest = totalPayment - principal;
+
+    setState(() {
+      principalAmount = principal;
+      emi = emiValue;
+      totalAmount = totalPayment;
+      totalInterest = interest;
+    });
   }
 
   @override
@@ -36,7 +53,8 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "TDS Calculator", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+          "EMI Calculator",
+          style: TextStyle(color: Colors.blue,fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -63,44 +81,50 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
-                    const Text(
-                      "Amount",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-
+                    const Text("Loan Amount",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
 
                     TextField(
-                      controller: _amountController,
+                      controller: _loanController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        hintText: "Enter Amount",
+                        hintText: "Enter Loan Amount",
                         border: OutlineInputBorder(),
                       ),
                     ),
 
                     const SizedBox(height: 20),
 
-                    DropdownButtonFormField<double>(
-                      value: selectedTdsRate,
+                    const Text("Rate of Interest (%)",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+
+                    TextField(
+                      controller: _rateController,
+                      keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: "TDS Rate (%)",
+                        hintText: "Enter Interest Rate",
                         border: OutlineInputBorder(),
                       ),
-                      items: [1, 2, 5, 10]
-                          .map((rate) => DropdownMenuItem(
-                                value: rate.toDouble(),
-                                child: Text("$rate%"),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedTdsRate = value!;
-                        });
-                      },
                     ),
 
                     const SizedBox(height: 20),
+
+                    const Text("Time Period (Years)",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+
+                    TextField(
+                      controller: _timeController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        hintText: "Enter Time in Years",
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 25),
 
                     SizedBox(
                       width: double.infinity,
@@ -110,15 +134,15 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        onPressed: calculateTDS,
+                        onPressed: calculateEMI,
                         child: const Text(
-                          "Calculate Tax",
+                          "Calculate EMI",
                           style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -130,7 +154,7 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
               const SizedBox(height: 20),
 
               /// SUMMARY CARD
-              if (netAmount > 0)
+              if (emi > 0)
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -143,7 +167,7 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
                     children: [
 
                       const Text(
-                        "Tax Summary",
+                        "EMI Summary",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -156,20 +180,32 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("Net Amount :"),
-                          Text("₹${netAmount.toStringAsFixed(2)}"),
+                          const Text("Monthly EMI :"),
+                          Text(
+                            "₹${emi.toStringAsFixed(2)}",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
 
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("TDS (${selectedTdsRate}%):"),
+                          const Text("Principal Amount :"),
+                          Text("₹${principalAmount.toStringAsFixed(0)}"),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Total Interest :"),
                           Text(
-                            "₹${tdsAmount.toStringAsFixed(2)}",
-                            style: const TextStyle(color: Colors.red),
+                            "₹${totalInterest.toStringAsFixed(0)}",
                           ),
                         ],
                       ),
@@ -184,7 +220,7 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            "₹${totalAmount.toStringAsFixed(2)}",
+                            "₹${totalAmount.toStringAsFixed(0)}",
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.green,

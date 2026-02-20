@@ -1,7 +1,7 @@
 import 'package:calculator/Home/insurance/insurence_file/insurance_maturity_screen.dart';
-import 'package:calculator/Home/insurance/insurence_file/insurance_sip_screen.dart';
-import 'package:calculator/Home/insurance/insurence_file/insurance_term_screen.dart';
-import 'package:calculator/Home/insurance/insurence_file/insurence_premium_screen.dart';
+import 'package:calculator/Home/insurance/insurence_file/insurance_emi_screen.dart';
+import 'package:calculator/Home/insurance/insurence_file/insurance_irr_screen.dart';
+import 'package:calculator/Home/insurance/insurence_file/insurence_xirr_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,159 +13,109 @@ class InsuranceScreen extends StatefulWidget {
 } 
 
 class _InsuranceScreenState extends State<InsuranceScreen> {
-  @override
+
+final List<Map<String, dynamic>> items = [
+    {
+      "title": "EMI\nCalculator",
+      "image": "assets/emi_picture.png",
+      "screen": const InsuranceEmiScreen(),
+    },
+    {
+      "title": "IRR\nCalculator",
+      "image": "assets/irr_picture.png",
+      "screen": const  InsuranceIrrScreen(),
+    },
+    {
+      "title": "XIRR\nCalculator",
+      "image": "assets/xirr_picture.png",
+      "screen": const InsurenceXirrScreen(),
+    },
+    {
+      "title": "Maturity\nCalculator",
+      "image": "assets/maturity_picture.png",
+      "screen": const InsuranceMaturityScreen(),
+    },
+    
+  ];
+
+   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        SystemNavigator.pop();
-         return false;
-      },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-      
-                /// Card 1: Premium Calculator
-                buildCard(
-                  context,
-                  title: "Premium Calculator",
-                  subtitle: "Calculate insurance premium amounts",
-                  icon: Image.asset('assets/premium_logo.png'),
-                  onTap: () {
-                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const InsurencePremiumScreen(),
-                      ),
-                   );
-                  },
-                ),
-      
-                const SizedBox(height: 16),
-      
-                /// Card 2: Term Insurance
-                buildCard(
-                  context,
-                  title: "Term Insurance",
-                  subtitle: "Calculate term insurance coverage",
-                  icon: Image.asset('assets/term_logo.png'),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const InsuranceTermScreen(),
-                      ),
-                    );
-                  },
-                ),
-      
-                const SizedBox(height: 16),
-      
-                /// Card 3: SIP Calculator
-                buildCard(
-                  context,
-                  title: "SIP / ULIP Calculator",
-                  subtitle: "Calculate SIP/ULIP returns",
-                  icon: Image.asset('assets/sip_logo.png'),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const InsuranceSipScreen(),
-                      ),
-                    );
-                  },
-                ),
-      
-                const SizedBox(height: 16),
-      
-                  /// Card 4: Maturity Calculator
-                buildCard(
-                  context,
-                  title: "Maturity Calculator",
-                  subtitle: "Calculate policy maturity amounts",
-                  icon: Image.asset('assets/maturity_logo.png'),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const InsuranceMaturityScreen(),
-                      ),
-                    );
-                  },
-                ),
-      
-              ],
-            ),
+    return Scaffold(
+      backgroundColor: const Color(0xffF2F2F2),
+      appBar: AppBar(
+        title: const Text(
+          "Insurance",
+          style: TextStyle(
+            color: Colors.blue,
+            fontWeight: FontWeight.bold,
           ),
         ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
-    );
-  }
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: GridView.builder(
+          itemCount: items.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3, // 3 columns
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 40,
+            childAspectRatio: 0.8,
+          ),
+          itemBuilder: (context, index) {
+            final item = items[index];
 
-  /// 🔹 Reusable Card Widget
-  Widget buildCard(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required Widget icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE9ECFF),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.blue, width: 2),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade200,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: SizedBox(
-                height: 32,
-                width: 32,
-                child: icon,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => item["screen"],
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue.shade700,
+                  );
+                },
+                child: Column(
+                  children: [
+                    Container(
+                      height: 81,
+                      width: 81,
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Center(
+                        child: Image.asset(
+                          item["image"],
+                          height: 50,
+                          width: 50,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 5),
+                    Text(
+                      item["title"],
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
 }
+
+
+

@@ -1,41 +1,39 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';  
-import 'package:intl/intl.dart';         
 import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';   // ✅ For input formatter
+import 'package:intl/intl.dart';          // ✅ For comma formatting
 
-class BankEmiScreen extends StatefulWidget {
-  const BankEmiScreen({super.key});
+class BankSipScreen extends StatefulWidget {
+  const BankSipScreen({super.key});
 
   @override
-  State<BankEmiScreen> createState() => _BankEmiScreenState();
+  State<BankSipScreen> createState() => _BankSipScreenState();
 }
 
-class _BankEmiScreenState extends State<BankEmiScreen> {
+class _BankSipScreenState extends State<BankSipScreen> {
 
-  //  Controllers
-  final TextEditingController _loanController = TextEditingController();
+  // ✅ Controllers for input fields
+  final TextEditingController _monthlyController = TextEditingController();
   final TextEditingController _rateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
 
- 
-  //  Result Variables
-  double emi = 0;
-  double principalAmount = 0;
-  double totalInterest = 0;
+  // ✅ Result variables
+  double investedAmount = 0;
+  double estimatedReturn = 0;
   double totalAmount = 0;
 
-  // ✅ Indian format for result (10,00,000)
+  // ✅ Indian number format (10,00,000)
   final NumberFormat indianFormat = NumberFormat('#,##,###');
 
-  //  EMI Calculation Function
-  void calculateEMI() {
+  //  SIP Calculation Function
+  void calculateSIP() {
 
     // Hide keyboard
     FocusScope.of(context).unfocus();
 
-    //  Remove comma before parsing
-    double principal =
-        double.tryParse(_loanController.text.replaceAll(',', '')) ?? 0;
+    //  Remove comma before converting to double
+    double monthlyInvestment =
+        double.tryParse(_monthlyController.text.replaceAll(',', '')) ?? 0;
 
     double annualRate =
         double.tryParse(_rateController.text) ?? 0;
@@ -43,28 +41,41 @@ class _BankEmiScreenState extends State<BankEmiScreen> {
     double years =
         double.tryParse(_timeController.text) ?? 0;
 
-    if (principal <= 0 || annualRate <= 0 || years <= 0) return;
-
-    //  Convert annual rate to monthly rate
-    double monthlyRate = annualRate / 12 / 100;
+    // If invalid input
+    if (monthlyInvestment <= 0 || years <= 0) {
+      setState(() {
+        investedAmount = 0;
+        estimatedReturn = 0;
+        totalAmount = 0;
+      });
+      return;
+    }
 
     // Total months
     int months = (years * 12).toInt();
 
-    //  EMI Formula
-    double emiValue = (principal *
-            monthlyRate *
-            pow((1 + monthlyRate), months)) /
-        (pow((1 + monthlyRate), months) - 1);
+    //  Convert annual rate to monthly rate
+    double monthlyRate = (annualRate / 100) / 12;
 
-    double totalPayment = emiValue * months;
-    double interest = totalPayment - principal;
+    double maturityAmount;
+
+    // If rate = 0
+    if (monthlyRate == 0) {
+      maturityAmount = monthlyInvestment * months;
+    } else {
+      //  Standard SIP formula
+      maturityAmount = monthlyInvestment *
+          ((pow(1 + monthlyRate, months) - 1) / monthlyRate) *
+          (1 + monthlyRate);
+    }
+
+    double totalInvested = monthlyInvestment * months;
+    double returns = maturityAmount - totalInvested;
 
     setState(() {
-      principalAmount = principal;
-      emi = emiValue;
-      totalAmount = totalPayment;
-      totalInterest = interest;
+      investedAmount = totalInvested;
+      estimatedReturn = returns;
+      totalAmount = maturityAmount;
     });
   }
 
@@ -74,7 +85,7 @@ class _BankEmiScreenState extends State<BankEmiScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "EMI Calculator",
+          "SIP Calculator",
           style: TextStyle(
               color: Colors.blue,
               fontWeight: FontWeight.bold),
@@ -103,31 +114,31 @@ class _BankEmiScreenState extends State<BankEmiScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
-                    // ===== Loan Amount =====
-                    const Text("Loan Amount",
+                    // ===== Monthly Investment =====
+                    const Text("Monthly Investment",
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
 
                     TextField(
-                      controller: _loanController,
+                      controller: _monthlyController,
                       keyboardType: TextInputType.number,
 
-                      //  Auto comma formatting
+                      //  This makes comma auto appear
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         IndianNumberFormatter(),
                       ],
 
                       decoration: const InputDecoration(
-                        hintText: "Enter Loan Amount",
+                        hintText: "Enter Monthly Amount",
                         border: OutlineInputBorder(),
                       ),
                     ),
 
                     const SizedBox(height: 20),
 
-                    // ===== Interest Rate =====
-                    const Text("Rate of Interest (%)",
+                    // ===== Return Rate =====
+                    const Text("Return Rate (% per year)",
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
 
@@ -135,7 +146,7 @@ class _BankEmiScreenState extends State<BankEmiScreen> {
                       controller: _rateController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
-                        hintText: "Enter Interest Rate",
+                        hintText: "Enter Annual Return Rate",
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -158,6 +169,7 @@ class _BankEmiScreenState extends State<BankEmiScreen> {
 
                     const SizedBox(height: 25),
 
+                    // ===== Calculate Button =====
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -170,22 +182,24 @@ class _BankEmiScreenState extends State<BankEmiScreen> {
                                 BorderRadius.circular(10),
                           ),
                         ),
-                        onPressed: calculateEMI,
+                        onPressed: calculateSIP,
                         child: const Text(
-                          "Calculate EMI",
+                          "Calculate SIP",
                           style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
+
                   ],
                 ),
               ),
 
               const SizedBox(height: 20),
+
               //  RESULT CARD
-              if (emi > 0)
+              if (totalAmount > 0)
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -198,7 +212,7 @@ class _BankEmiScreenState extends State<BankEmiScreen> {
                     children: [
 
                       const Text(
-                        "EMI Summary",
+                        "SIP Summary",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -208,19 +222,16 @@ class _BankEmiScreenState extends State<BankEmiScreen> {
 
                       const SizedBox(height: 15),
 
-                      summaryRow("Monthly EMI",
-                          indianFormat.format(emi.round())),
+                      summaryRow("Invested Amount",
+                          indianFormat.format(investedAmount)),
 
-                      summaryRow("Principal Amount",
-                          indianFormat.format(principalAmount.round())),
-
-                      summaryRow("Total Interest",
-                          indianFormat.format(totalInterest.round())),
+                      summaryRow("Est. Return",
+                          indianFormat.format(estimatedReturn)),
 
                       const Divider(height: 25),
 
                       summaryRow("Total Amount",
-                          indianFormat.format(totalAmount.round()),
+                          indianFormat.format(totalAmount),
                           isBold: true),
                     ],
                   ),
@@ -232,7 +243,7 @@ class _BankEmiScreenState extends State<BankEmiScreen> {
     );
   }
 
-  //  Reusable Row
+  //  Reusable Summary Row
   Widget summaryRow(String title, String value,
       {bool isBold = false}) {
     return Padding(
@@ -259,7 +270,7 @@ class _BankEmiScreenState extends State<BankEmiScreen> {
   }
 }
 
-//  Custom Indian Comma Formatter
+//  Custom Formatter for Indian Comma
 class IndianNumberFormatter extends TextInputFormatter {
 
   final NumberFormat _formatter = NumberFormat('#,##,###');
@@ -278,7 +289,7 @@ class IndianNumberFormatter extends TextInputFormatter {
 
     final number = int.parse(newText);
 
-    // Add Indian comma format
+    // Add Indian style comma
     final formatted = _formatter.format(number);
 
     return TextEditingValue(

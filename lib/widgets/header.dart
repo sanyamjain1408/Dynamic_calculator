@@ -21,20 +21,7 @@ class AppHeader extends StatelessWidget {
               height: 36,
             ),
 
-            /// Left profile
-            Align(
-              alignment: Alignment.centerLeft,
-              child: GestureDetector(
-                onTap: () {
-                  print("Avatar tapped"); // debug
-                 scaffoldKey?.currentState?.openDrawer();
-                },
-                child: const CircleAvatar(
-                  radius: 20,
-                  backgroundImage: AssetImage('assets/profile_logo.png'),
-                ),
-              ),
-            ),
+            
           ],
         ),
       ),

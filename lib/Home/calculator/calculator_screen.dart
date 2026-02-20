@@ -60,7 +60,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         onTap: () => onButtonTap(text),
         child: Container(
           margin: const EdgeInsets.all(8),
-          height: 60,
+          height: 70,
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(16),
@@ -68,7 +68,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
           child: Center(
             child: Text(
               text,
-              style: TextStyle(fontSize: 22, color: txt),
+              style: TextStyle(fontSize: 28, color: txt),
             ),
           ),
         ),
@@ -92,18 +92,18 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(input,
-                    style: const TextStyle(fontSize: 18, color: Colors.grey)),
+                    style: const TextStyle(fontSize: 30, color: Colors.grey)),
                 const SizedBox(height: 10),
                 Text(result,
                     style: const TextStyle(
-                        fontSize: 36, fontWeight: FontWeight.bold)),
+                        fontSize: 46, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
 
           /// Buttons
           Row(children: [
-            buildButton('AC', txt: Colors.grey),
+            buildButton('AC', txt: Colors.black, ),
             buildButton('⌫'),
             buildButton('÷', bg: Colors.lightBlue.shade100),
             buildButton('×', bg: Colors.lightBlue.shade100),

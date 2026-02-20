@@ -22,28 +22,28 @@ class AppBottomNav extends StatelessWidget {
             AssetImage('assets/cal_logo.png'),
             size: 24,
           ),
-          label: 'Calculator',
+           label: 'Calc',
         ),
         BottomNavigationBarItem(
           icon: ImageIcon(
-            AssetImage('assets/ca_logo.png'),
+            AssetImage('assets/smartcalc_logo.png'),
             size: 24,
           ),
-          label: 'CA',
+           label: 'Smart Calc',
         ),
         BottomNavigationBarItem(
           icon: ImageIcon(
-            AssetImage('assets/bank_logo.png'),
+            AssetImage('assets/history_logo.png'),
             size: 24,
           ),
-          label: 'Bank',
+           label: 'History',
         ),
         BottomNavigationBarItem(
           icon: ImageIcon(
-            AssetImage('assets/inc_logo.png'),
+            AssetImage('assets/profile_logo.png'),
             size: 24,
           ),
-          label: 'Insurance',
+          label: 'Profile',
         ),
       ],
       backgroundColor: Colors.blue[400],

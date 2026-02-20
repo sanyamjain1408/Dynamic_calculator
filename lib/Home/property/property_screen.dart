@@ -1,54 +1,44 @@
+import 'package:calculator/Home/property/property_files/property_electricity_screen.dart';
+import 'package:calculator/Home/property/property_files/property_landunit_screen.dart';
+import 'package:calculator/Home/property/property_files/property_paintcost_screen.dart';
 import 'package:flutter/material.dart';
-import 'ca_files/ca_income_tax_screen.dart';
-import 'ca_files/ca_hra_screen.dart';
-import 'ca_files/ca_gst_screen.dart';
-import 'ca_files/ca_tds_screen.dart';
-import 'ca_files/ca_emi_screen.dart';
 
-class CaScreen extends StatefulWidget {
-  const CaScreen({super.key});
+class PropertyScreen extends StatefulWidget {
+  const PropertyScreen({super.key});
 
   @override
-  State<CaScreen> createState() => _CaScreenState();
+  State<PropertyScreen> createState() => _PropertyScreenState();
 }
 
-class _CaScreenState extends State<CaScreen> {
+class _PropertyScreenState extends State<PropertyScreen> {
 
-  final List<Map<String, dynamic>> items = [
+  
+final List<Map<String, dynamic>> items = [
     {
-      "title": "Income Tax\nCalculator",
-      "image": "assets/income_tax_picture.png",
-      "screen": const CaIncomeTaxScreen(),
+      "title": "Land Unit\nCalculator",
+      "image": "assets/landunit_picture.png",
+      "screen": const PropertyLandUnitScreen(),
     },
     {
-      "title": "HRA\nCalculator",
-      "image": "assets/hra_picture.png",
-      "screen": const CaHraScreen(),
+      "title": "Paint Cost\nCalculator",
+      "image": "assets/paintcost_picture.png",
+      "screen": const PropertyPaintcostScreen(),
     },
     {
-      "title": "GST\nCalculator",
-      "image": "assets/gst_picture.png",
-      "screen": const CaGstScreen(),
+      "title": "Electricity Bill\nCalculator",
+      "image": "assets/electricity_picture.png",
+      "screen": const PropertyElectricityScreen(),
     },
-    {
-      "title": "TDS\nCalculator",
-      "image": "assets/tds_picture.png",
-      "screen": const CaTdsScreen(),
-    },
-    {
-      "title": "EMI\nCalculator",
-      "image": "assets/emi_picture.png",
-      "screen": const CaEMIScreen(),
-    },
+    
   ];
 
-  @override
+   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffF2F2F2),
       appBar: AppBar(
         title: const Text(
-          "CA FIRM",
+          "Property & Utility",
           style: TextStyle(
             color: Colors.blue,
             fontWeight: FontWeight.bold,
@@ -120,3 +110,6 @@ class _CaScreenState extends State<CaScreen> {
     );
   }
 }
+
+
+

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 
+import 'package:calculator/Home/home_screen.dart';
 import 'package:calculator/Home/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -23,7 +24,7 @@ class _SplashScreenState extends State<SplashScreen> {
     context,
     PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) =>
-          const OnboardingScreen(),
+          const HomeScreen(),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         return FadeTransition(
           opacity: animation,

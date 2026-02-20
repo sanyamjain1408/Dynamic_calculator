@@ -155,24 +155,24 @@ class _OtpAuthenticationState extends State<OtpAuthentication> {
                                   // ✅ DELAY + PAGE TRANSITION
                                   Future.delayed(
                                       const Duration(milliseconds: 800), () {
-                                    Navigator.pushAndRemoveUntil(
-                                      context,
-                                      PageRouteBuilder(
-                                        transitionDuration:
-                                            const Duration(milliseconds: 600),
-                                        pageBuilder: (context, animation, _) =>
-                                            const HomeScreen(),
-                                        transitionsBuilder:
-                                            (context, animation, _, child) {
-                                          return FadeTransition(
-                                            opacity: animation,
-                                            child: child,
-                                          );
-                                        },
-                                      ),
-                                      (route) =>
-                                          false, // 🔥 ye line OTP ko stack se hata degi
-                                    );
+                                    // Navigator.pushAndRemoveUntil(
+                                    //   context,
+                                    //   PageRouteBuilder(
+                                    //     transitionDuration:
+                                    //         const Duration(milliseconds: 600),
+                                    //     pageBuilder: (context, animation, _) =>
+                                    //         const HomeScreen(),
+                                    //     transitionsBuilder:
+                                    //         (context, animation, _, child) {
+                                    //       return FadeTransition(
+                                    //         opacity: animation,
+                                    //         child: child,
+                                    //       );
+                                    //     },
+                                    //   ),
+                                    //   (route) =>
+                                    //       false, // 🔥 ye line OTP ko stack se hata degi
+                                    // );
                                   });
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(

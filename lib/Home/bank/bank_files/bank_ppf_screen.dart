@@ -80,156 +80,187 @@ class _BankPpfScreenState extends State<BankPpfScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade200,
       appBar: AppBar(
         title: const Text(
           "PPF Calculator",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.blue),
         ),
-        backgroundColor: Colors.grey.shade200,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
         centerTitle: true,
+        backgroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // INPUT CARD
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.black),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Total Investment"),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _investmentController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      IndianNumberFormatter(),
-                    ],
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text("Return Rate (%)"),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _rateController,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text("Time Period (Years)"),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _timeController,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text("Frequency"),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: selectedFrequency,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: "Yearly",
-                        child: Text("Yearly"),
-                      ),
-                      DropdownMenuItem(
-                        value: "Monthly",
-                        child: Text("Monthly"),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        selectedFrequency = value!;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 25),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: calculatePPF,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        "Calculate PPF",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      backgroundColor: Colors.grey.shade200,
 
-            const SizedBox(height: 25),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
 
-            // RESULT CARD
-            if (totalAmount > 0)
+              // INPUT CARD
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.blue),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "PPF Summary",
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue),
+
+                    const Text("Total Investment",
+                    style: TextStyle(fontWeight: FontWeight.bold)
                     ),
-                    const SizedBox(height: 15),
-                    summaryRow("Invested Amount",
-                        indianFormat.format(investedAmount.round())),
-                    summaryRow("Est. Return",
-                        indianFormat.format(estimatedReturn.round())),
-                    const Divider(height: 25),
-                    summaryRow("Total Amount",
-                        indianFormat.format(totalAmount.round()),
-                        isBold: true),
+
+                    const SizedBox(height: 8),
+
+                    TextField(
+                      controller: _investmentController,
+                      keyboardType: TextInputType.number,
+
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        IndianNumberFormatter(),
+                      ],
+
+                      decoration: const InputDecoration(
+                        hintText: "Enter Total Investment",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    const Text("Return Rate (%)",
+                     style: TextStyle(fontWeight: FontWeight.bold)
+                     ),
+
+                    const SizedBox(height: 8),
+
+                    TextField(
+                      controller: _rateController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        hintText: "Enter Annual Return Rate",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    const Text("Time Period (Years)",
+                    style: TextStyle(fontWeight: FontWeight.bold)
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    TextField(
+                      controller: _timeController,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        hintText: "Enter Time Period in Years",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    const Text("Frequency",
+                    style: TextStyle(fontWeight: FontWeight.bold)
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: selectedFrequency,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: "Yearly",
+                          child: Text("Yearly"),
+                        ),
+                        DropdownMenuItem(
+                          value: "Monthly",
+                          child: Text("Monthly"),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedFrequency = value!;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: calculatePPF,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          "Calculate PPF",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-          ],
+        
+              const SizedBox(height: 25),
+        
+              // RESULT CARD
+              if (totalAmount > 0)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.blue),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "PPF Summary",
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue),
+                      ),
+                      const SizedBox(height: 15),
+                      summaryRow("Invested Amount",
+                          indianFormat.format(investedAmount.round())),
+                      summaryRow("Est. Return",
+                          indianFormat.format(estimatedReturn.round())),
+                      const Divider(height: 25),
+                      summaryRow("Total Amount",
+                          indianFormat.format(totalAmount.round()),
+                          isBold: true),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

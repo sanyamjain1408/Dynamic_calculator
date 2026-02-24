@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class CaTdsScreen extends StatefulWidget {
   const CaTdsScreen({super.key});
@@ -16,19 +18,72 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
   double tdsAmount = 0;
   double totalAmount = 0;
 
-  void calculateTDS() {
+  bool isLoading = false;
+
+  final String baseUrl = "http://192.168.1.2:8000";
+
+Future<void> calculateTDS() async {
     FocusScope.of(context).unfocus();
 
     double amount = double.tryParse(_amountController.text) ?? 0;
 
     if (amount <= 0) return;
 
-    netAmount = amount;
-    tdsAmount = (amount * selectedTdsRate) / 100;
-    totalAmount = amount - tdsAmount;
+    setState(() => isLoading = true);
 
-    setState(() {});
+    final url = "$baseUrl/ca_app/tds/calculate/";
+
+    final requestBody = {
+      "calculator_type": "tds calculator",
+      "amount": amount,
+      "tds_rate": selectedTdsRate,
+    };
+
+    print("------------------------- POST REQUEST ---------------------------------");
+    print("URL: $url");
+    print("BODY: ${jsonEncode(requestBody)}");
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(requestBody),
+      );
+
+       print("----------------------------- POST RESPONSE -----------------------------");
+      print("Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+
+
+      // Calculate TDS
+      double tds = (amount * selectedTdsRate) / 100;
+      double net = amount - tds;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+        final result = data["result"];
+        
+        setState(() {
+          tdsAmount = (result["tds_amount"] ?? 0).toDouble();
+          netAmount = (result["net_amount"] ?? 0).toDouble();
+          totalAmount = (result["total_amount"] ?? 0).toDouble();
+        });
+      } else {
+        print("Post Error: ${response.body}");
+      }
+    } catch (e) {
+      print("Connection failed: $e");
+    } finally {
+      setState(() => isLoading = false);
+    }
+  } 
+
+   @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +130,7 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         hintText: "Enter Amount",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -113,7 +169,11 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         onPressed: calculateTDS,
-                        child: const Text(
+                        child:  isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : const Text(
                           "Calculate Tax",
                           style: TextStyle(
                             color: Colors.white,

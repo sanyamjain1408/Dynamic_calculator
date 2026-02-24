@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';   // ✅ For input formatter
-import 'package:intl/intl.dart';          // ✅ For comma formatting
+import 'package:flutter/services.dart';   //  For input formatter
+import 'package:intl/intl.dart';          //  For comma formatting
 
 class BankSipScreen extends StatefulWidget {
   const BankSipScreen({super.key});
@@ -12,17 +12,17 @@ class BankSipScreen extends StatefulWidget {
 
 class _BankSipScreenState extends State<BankSipScreen> {
 
-  // ✅ Controllers for input fields
+  //  Controllers for input fields
   final TextEditingController _monthlyController = TextEditingController();
   final TextEditingController _rateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
 
-  // ✅ Result variables
+  //  Result variables
   double investedAmount = 0;
   double estimatedReturn = 0;
   double totalAmount = 0;
 
-  // ✅ Indian number format (10,00,000)
+  //  Indian number format (10,00,000)
   final NumberFormat indianFormat = NumberFormat('#,##,###');
 
   //  SIP Calculation Function
@@ -116,7 +116,9 @@ class _BankSipScreenState extends State<BankSipScreen> {
 
                     // ===== Monthly Investment =====
                     const Text("Monthly Investment",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: TextStyle(fontWeight: FontWeight.bold)
+                        ),
+
                     const SizedBox(height: 8),
 
                     TextField(
@@ -131,6 +133,7 @@ class _BankSipScreenState extends State<BankSipScreen> {
 
                       decoration: const InputDecoration(
                         hintText: "Enter Monthly Amount",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -139,7 +142,9 @@ class _BankSipScreenState extends State<BankSipScreen> {
 
                     // ===== Return Rate =====
                     const Text("Return Rate (% per year)",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: TextStyle(fontWeight: FontWeight.bold)
+                        ),
+
                     const SizedBox(height: 8),
 
                     TextField(
@@ -147,6 +152,7 @@ class _BankSipScreenState extends State<BankSipScreen> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         hintText: "Enter Annual Return Rate",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -155,7 +161,9 @@ class _BankSipScreenState extends State<BankSipScreen> {
 
                     // ===== Time =====
                     const Text("Time Period (Years)",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: TextStyle(fontWeight: FontWeight.bold)
+                        ),
+                        
                     const SizedBox(height: 8),
 
                     TextField(
@@ -163,6 +171,7 @@ class _BankSipScreenState extends State<BankSipScreen> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         hintText: "Enter Time in Years",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),

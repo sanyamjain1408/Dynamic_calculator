@@ -1,5 +1,6 @@
-import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class CaEMIScreen extends StatefulWidget {
   const CaEMIScreen({super.key});
@@ -19,33 +20,74 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
   double totalInterest = 0;
   double totalAmount = 0;
 
-  void calculateEMI() {
+  bool isLoading = false;
+
+  final String baseUrl = "http://192.168.1.2:8000";
+
+  Future<void> calculateEMI() async {
     FocusScope.of(context).unfocus();
 
-    double principal = double.tryParse(_loanController.text) ?? 0;
-    double annualRate = double.tryParse(_rateController.text) ?? 0;
-    double years = double.tryParse(_timeController.text) ?? 0;
+    double loanAmount = double.tryParse(_loanController.text) ?? 0;
+    double interestRate = double.tryParse(_rateController.text) ?? 0;
+    double timeInYears = double.tryParse(_timeController.text) ?? 0;
 
-    if (principal <= 0 || annualRate <= 0 || years <= 0) return;
+    if (loanAmount <= 0 || interestRate <= 0 || timeInYears <= 0) return;
 
-    double monthlyRate = annualRate / 12 / 100;
-    int months = (years * 12).toInt();
+    setState(() => isLoading = true);
 
-    double emiValue = (principal *
-            monthlyRate *
-            pow((1 + monthlyRate), months)) /
-        (pow((1 + monthlyRate), months) - 1);
+    final url = "$baseUrl/ca_app/emi/calculate/";
 
-    double totalPayment = emiValue * months;
-    double interest = totalPayment - principal;
+    final requestBody = {
+      "calculator_type": "emi calculator",
+      "loan_amount": loanAmount,
+      "interest_rate": interestRate,
+      "time_in_years": timeInYears,
+    };
 
-    setState(() {
-      principalAmount = principal;
-      emi = emiValue;
-      totalAmount = totalPayment;
-      totalInterest = interest;
-    });
+    print("------------------------- POST REQUEST ---------------------------------");
+    print("URL: $url");
+    print("BODY: ${jsonEncode(requestBody)}");
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(requestBody),
+      );
+
+       print("----------------------------- POST RESPONSE -----------------------------");
+      print("Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+      
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+        final result = data["result"];
+
+        setState(() {
+          emi = (result["emi"] ?? 0).toDouble();
+          principalAmount = (result["principal_amount"] ?? 0).toDouble();
+          totalInterest = (result["total_interest"] ?? 0).toDouble();
+          totalAmount = (result["total_amount"] ?? 0).toDouble();
+        });
+      } else {
+        print("Post Error: ${response.body}");
+      }
+    } catch (e) {
+      print("Connection failed: $e");
+    } finally {
+      setState(() => isLoading = false);
+    }
+  } 
+
+   @override
+  void dispose() {
+    _loanController.dispose();
+    _rateController.dispose();
+    _timeController.dispose();
+    super.dispose();
   }
+
+ 
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +132,7 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         hintText: "Enter Loan Amount",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -105,6 +148,7 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         hintText: "Enter Interest Rate",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -120,6 +164,7 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         hintText: "Enter Time in Years",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -138,7 +183,11 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
                               const EdgeInsets.symmetric(vertical: 14),
                         ),
                         onPressed: calculateEMI,
-                        child: const Text(
+                        child:isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            :  const Text(
                           "Calculate EMI",
                           style: TextStyle(
                               color: Colors.white,
@@ -240,3 +289,4 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
     );
   }
 }
+

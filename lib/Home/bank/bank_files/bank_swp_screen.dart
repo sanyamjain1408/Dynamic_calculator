@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; 
+import 'package:intl/intl.dart'; 
 
 class BankSwpScreen extends StatefulWidget {
   const BankSwpScreen({super.key});
@@ -8,7 +11,6 @@ class BankSwpScreen extends StatefulWidget {
 }
 
 class _BankSwpScreenState extends State<BankSwpScreen> {
-
   final TextEditingController _investmentController = TextEditingController();
   final TextEditingController _withdrawController = TextEditingController();
   final TextEditingController _rateController = TextEditingController();
@@ -45,7 +47,7 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
     double balance = P;
 
     for (int i = 0; i < totalMonths; i++) {
-      balance -= W;                    // Withdrawal at beginning
+      balance -= W; // Withdrawal at beginning
       balance += balance * monthlyRate; // Monthly interest
     }
 
@@ -63,142 +65,165 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("SWP Calculator",
-            style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+        title: const Text(
+          "SWP Calculator",
+            style: TextStyle(
+              color: Colors.blue,
+              fontWeight: FontWeight.bold)
+              ),
         centerTitle: true,
         backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.black),
+        elevation: 1,
       ),
       backgroundColor: Colors.grey.shade100,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
 
-            /// INPUT CARD
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(16),
-                color: Colors.white,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  const Text("Total Investment",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _investmentController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  const Text("Withdrawal (per month)",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _withdrawController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  const Text("Return Rate (% per year)",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _rateController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  const Text("Time Period (Years)",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _timeController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                      onPressed: calculateSWP,
-                      child: const Text(
-                        "Calculate SWP",
-                        style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            /// SUMMARY
-            if (investedAmount > 0)
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              /// INPUT CARD
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(16),
-                  color: Colors.blue.shade50,
-                  border: Border.all(color: Colors.blue),
+                  color: Colors.white,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const Text("Total Investment",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _investmentController,
+                      keyboardType: TextInputType.number,
 
-                    const Text(
-                      "SWP Summary",
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue),
+                       //  This makes comma auto appear
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        IndianNumberFormatter(),
+                      ],
+
+                      decoration: const InputDecoration(
+                        hintText: "Enter Total Investment",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
+                        border: OutlineInputBorder(),
+                      ),
                     ),
 
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 20),
 
-                    buildRow("Invested Amount :", investedAmount),
-                    buildRow("Withdrawal (P.M) :", monthlyWithdrawal),
-                    buildRow("Total Withdrawn :", totalWithdrawn),
 
-                    const Divider(height: 25),
 
-                    buildRow("Final Amount :", finalAmount, isFinal: true),
+                    const Text("Withdrawal (per month)",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                        
+                    const SizedBox(height: 8),
+
+                    TextField(
+                      controller: _withdrawController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        hintText: "Enter Monthly Withdrawal",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    const Text("Return Rate (% per year)",
+                        style: TextStyle(fontWeight: FontWeight.bold)
+                        ),
+
+                    const SizedBox(height: 8),
+
+                    TextField(
+                      controller: _rateController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        hintText: "Enter Annual Return Rate",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    const Text("Time Period (Years)",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+
+                    const SizedBox(height: 8),
+                    
+                    TextField(
+                      controller: _timeController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        hintText: "Enter Time Period (Years)",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: calculateSWP,
+                        child: const Text(
+                          "Calculate SWP",
+                          style: TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-          ],
+        
+              const SizedBox(height: 20),
+        
+              /// SUMMARY
+              if (investedAmount > 0)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.blue.shade50,
+                    border: Border.all(color: Colors.blue),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "SWP Summary",
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue),
+                      ),
+                      const SizedBox(height: 15),
+                      buildRow("Invested Amount :", investedAmount),
+                      buildRow("Withdrawal (P.M) :", monthlyWithdrawal),
+                      buildRow("Total Withdrawn :", totalWithdrawn),
+                      const Divider(height: 25),
+                      buildRow("Final Amount :", finalAmount, isFinal: true),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -212,18 +237,47 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
         children: [
           Text(title,
               style: TextStyle(
-                  fontWeight:
-                      isFinal ? FontWeight.bold : FontWeight.normal)),
+                  fontWeight: isFinal ? FontWeight.bold : FontWeight.normal)),
           Text(
             "₹${value.toStringAsFixed(0)}",
             style: TextStyle(
-              fontWeight:
-                  isFinal ? FontWeight.bold : FontWeight.normal,
+              fontWeight: isFinal ? FontWeight.bold : FontWeight.normal,
               color: isFinal ? Colors.green : Colors.black,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+
+//  Custom Formatter for Indian Comma
+class IndianNumberFormatter extends TextInputFormatter {
+
+  final NumberFormat _formatter = NumberFormat('#,##,###');
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue) {
+
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Remove old commas
+    String newText = newValue.text.replaceAll(',', '');
+
+    final number = int.parse(newText);
+
+    // Add Indian style comma
+    final formatted = _formatter.format(number);
+
+    return TextEditingValue(
+      text: formatted,
+      selection:
+          TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

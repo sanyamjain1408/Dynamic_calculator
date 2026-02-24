@@ -91,6 +91,7 @@ class _InsuranceEmiScreenState extends State<InsuranceEmiScreen> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         hintText: "Enter Loan Amount",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -106,6 +107,7 @@ class _InsuranceEmiScreenState extends State<InsuranceEmiScreen> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         hintText: "Enter Interest Rate",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -121,6 +123,7 @@ class _InsuranceEmiScreenState extends State<InsuranceEmiScreen> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         hintText: "Enter Time in Years",
+                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),

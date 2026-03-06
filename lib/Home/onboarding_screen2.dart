@@ -1,4 +1,4 @@
-import 'package:calculator/Home/mobilelogin_screen.dart';
+import 'package:calculator/Home/emaillogin_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:calculator/Home/onboarding_screen2.dart';
 
@@ -78,7 +78,7 @@ Widget build(BuildContext context) {
               onPressed: (){
                 Navigator.push(context,
                  MaterialPageRoute(
-                  builder: (context) => const MobileLoginScreen()
+                  builder: (context) => const EmailLoginScreen()
                   ),
                 );
               },

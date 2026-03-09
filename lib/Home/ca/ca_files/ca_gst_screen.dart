@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:calculator/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CaGstScreen extends StatefulWidget {
   const CaGstScreen({super.key});
@@ -12,7 +14,6 @@ class CaGstScreen extends StatefulWidget {
 class _CaGstScreenState extends State<CaGstScreen> {
   final TextEditingController _amountController = TextEditingController();
 
-  
   String selectedCalculationType = "Exclusive";
   String selectedGstType = "GST";
   double selectedGstRate = 18;
@@ -27,20 +28,22 @@ class _CaGstScreenState extends State<CaGstScreen> {
 
   bool isLoading = false;
 
-  ///  CHANGE THIS IP IF NEEDED
-  final String baseUrl = "http://192.168.1.2:8000";
-
   Future<void> calculateGST() async {
     FocusScope.of(context).unfocus();
 
     double amount = double.tryParse(_amountController.text) ?? 0;
-    if (amount <= 0) return;
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter Valid Amount")),
+      );
+      return;
+    }
 
     setState(() {
       isLoading = true;
     });
 
-    final url = "$baseUrl/ca_app/gst/calculate/";
+    final url = "${ApiConfig.baseUrl}/ca_app/gst/calculate/";
 
     final requestBody = {
       "calculator_type": "gst calculator",
@@ -54,10 +57,15 @@ class _CaGstScreenState extends State<CaGstScreen> {
     print("URL: $url");
     print("BODY: ${jsonEncode(requestBody)}");
 
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+    print("----------------------------------TOKEN------------------------------------------");
+    print("Token Used: $token");
+
     try {
       final response = await http.post(
         Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
+        headers: {"Content-Type": "application/json", "Authorization": "Token $token"},
         body: jsonEncode(requestBody),
       );
 
@@ -80,8 +88,10 @@ class _CaGstScreenState extends State<CaGstScreen> {
       } else {
         print("POST Error: ${response.body}");
       }
-    } catch (e) {
-      print("Connection Error: $e");
+    } catch (e, stackTrace) {
+      print("ERROR OCCURRED");
+      print(e);
+      print(stackTrace);
     }
 
     setState(() {
@@ -131,8 +141,7 @@ class _CaGstScreenState extends State<CaGstScreen> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: _amountController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         hintText: "Enter Amount",
                         border: OutlineInputBorder(),
@@ -215,8 +224,7 @@ class _CaGstScreenState extends State<CaGstScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         onPressed: calculateGST,
                         child: isLoading
@@ -251,7 +259,6 @@ class _CaGstScreenState extends State<CaGstScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       const Text(
                         "Tax Summary",
                         style: TextStyle(
@@ -260,77 +267,70 @@ class _CaGstScreenState extends State<CaGstScreen> {
                           color: Colors.blue,
                         ),
                       ),
-                      
                       const SizedBox(height: 15),
-
-                      
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text("Net Amount: "),
-                          Text("₹${netAmount.toStringAsFixed(2)}",
-                           style: const TextStyle(fontWeight: FontWeight.bold),
-                           ),
+                          Text(
+                            "₹${netAmount.toStringAsFixed(2)}",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
-
                       const SizedBox(height: 10),
-
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text("Tax Amount: "),
-                          Text("₹${taxAmount.toStringAsFixed(2)}",
-                           style: const TextStyle(fontWeight: FontWeight.bold),
-                           ),
+                          Text(
+                            "₹${taxAmount.toStringAsFixed(2)}",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
-
                       const SizedBox(height: 10),
-
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text("IGST: "),
-                          Text("₹${igst.toStringAsFixed(2)}",
-                           style: const TextStyle(fontWeight: FontWeight.bold),
-                           ),
+                          Text(
+                            "₹${igst.toStringAsFixed(2)}",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
-
                       const SizedBox(height: 10),
-
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text("CGST: "),
-                          Text("₹${cgst.toStringAsFixed(2)}",
-                           style: const TextStyle(fontWeight: FontWeight.bold),
-                           ),
+                          Text(
+                            "₹${cgst.toStringAsFixed(2)}",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
-
                       const SizedBox(height: 10),
-
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text("SGST: "),
-                          Text("₹${sgst.toStringAsFixed(2)}",
-                           style: const TextStyle(fontWeight: FontWeight.bold),
-                           ),
+                          Text(
+                            "₹${sgst.toStringAsFixed(2)}",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
-
-                       const Divider(height: 25),
-
+                      const Divider(height: 25),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text("Total Amount: "),
-                          Text("₹${totalAmount.toStringAsFixed(2)}",
-                           style: const TextStyle(fontWeight: FontWeight.bold),
-                           ),
+                          Text(
+                            "₹${totalAmount.toStringAsFixed(2)}",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
                     ],

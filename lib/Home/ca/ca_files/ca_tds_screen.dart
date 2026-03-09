@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:calculator/config/app_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class CaTdsScreen extends StatefulWidget {
   const CaTdsScreen({super.key});
@@ -20,18 +23,21 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
 
   bool isLoading = false;
 
-  final String baseUrl = "http://192.168.1.2:8000";
-
 Future<void> calculateTDS() async {
     FocusScope.of(context).unfocus();
 
     double amount = double.tryParse(_amountController.text) ?? 0;
 
-    if (amount <= 0) return;
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter Valid Amount")),
+      );
+      return;
+    }
 
     setState(() => isLoading = true);
 
-    final url = "$baseUrl/ca_app/tds/calculate/";
+    final url = "${ApiConfig.baseUrl}/ca_app/tds/calculate/";
 
     final requestBody = {
       "calculator_type": "tds calculator",
@@ -39,30 +45,29 @@ Future<void> calculateTDS() async {
       "tds_rate": selectedTdsRate,
     };
 
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
     print("------------------------- POST REQUEST ---------------------------------");
     print("URL: $url");
     print("BODY: ${jsonEncode(requestBody)}");
+    print("TOKEN: $token");
 
     try {
       final response = await http.post(
         Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
+        headers: {"Content-Type": "application/json", "Authorization": "Token $token"},
         body: jsonEncode(requestBody),
       );
 
-       print("----------------------------- POST RESPONSE -----------------------------");
+      print("----------------------------- POST RESPONSE -----------------------------");
       print("Status Code: ${response.statusCode}");
       print("Response Body: ${response.body}");
-
-
-      // Calculate TDS
-      double tds = (amount * selectedTdsRate) / 100;
-      double net = amount - tds;
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
         final result = data["result"];
-        
+
         setState(() {
           tdsAmount = (result["tds_amount"] ?? 0).toDouble();
           netAmount = (result["net_amount"] ?? 0).toDouble();
@@ -76,7 +81,8 @@ Future<void> calculateTDS() async {
     } finally {
       setState(() => isLoading = false);
     }
-  } 
+  }
+ 
 
    @override
   void dispose() {

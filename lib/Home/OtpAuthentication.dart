@@ -1,9 +1,9 @@
 import 'package:calculator/Home/home_screen.dart';
+import 'package:calculator/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
 
 class OtpAuthentication extends StatefulWidget {
   final String email;
@@ -20,23 +20,20 @@ class OtpAuthentication extends StatefulWidget {
 }
 
 class _OtpAuthenticationState extends State<OtpAuthentication> {
-
   String otp = "";
   bool isLoading = false;
 
-  final String baseUrl = "http://192.168.1.5:8000";
+  Future<void> saveLogin(String email, String name,String phone, String token) async {
+    final prefs = await SharedPreferences.getInstance();
 
-  Future<void> saveLogin(String email, String name) async {
+    await prefs.setBool("isLoggedIn", true);
+    await prefs.setString("email", email);
+    await prefs.setString("name", name);
+    await prefs.setString("phone", phone);
+    await prefs.setString("token", token);
 
-  final prefs = await SharedPreferences.getInstance();
-
-  await prefs.setBool("isLoggedIn", true);
-  await prefs.setString("email", email);
-  await prefs.setString("name", name);
-
-}
-
-
+    print("---------------------------TOKEN SAVED:------------------------------------\n $token");
+  }
 
   // OTP TYPE FUNCTION
   void onOtpTap(String number) {
@@ -58,7 +55,6 @@ class _OtpAuthenticationState extends State<OtpAuthentication> {
 
   // VERIFY OTP API
   Future<void> verifyOtp() async {
-
     if (otp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Enter 6 digit OTP")),
@@ -70,7 +66,7 @@ class _OtpAuthenticationState extends State<OtpAuthentication> {
       isLoading = true;
     });
 
-    final url = "$baseUrl/ca_app/login/verify-otp/";
+    final url = "${ApiConfig.baseUrl}/ca_app/login/verify-otp/";
 
     final requestBody = {
       "email": widget.email,
@@ -82,7 +78,6 @@ class _OtpAuthenticationState extends State<OtpAuthentication> {
     print("BODY: ${jsonEncode(requestBody)}");
 
     try {
-
       var response = await http.post(
         Uri.parse(url),
         headers: {
@@ -97,12 +92,13 @@ class _OtpAuthenticationState extends State<OtpAuthentication> {
 
       var data = jsonDecode(response.body);
 
+      print("-------------------------TOKEN FROM API:------------------------------------ ${data["token"]}");
+
       setState(() {
         isLoading = false;
       });
 
       if (data["status"] == true) {
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("OTP Verified"),
@@ -110,11 +106,13 @@ class _OtpAuthenticationState extends State<OtpAuthentication> {
           ),
         );
 
-        Future.delayed(const Duration(milliseconds: 700), () async{
-
+        Future.delayed(const Duration(milliseconds: 700), () async {
           await saveLogin(
             data["user"]["email"],
-            data["user"]["name"] ?? "User");
+            data["user"]["name"] ?? "User",
+            data["user"]["phone"],
+            data["token"],
+          );
 
           widget.onLoginSuccess?.call();
 
@@ -124,22 +122,16 @@ class _OtpAuthenticationState extends State<OtpAuthentication> {
               builder: (_) => const HomeScreen(),
             ),
           );
-
         });
-
       } else {
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(data["message"]),
             backgroundColor: Colors.red,
           ),
         );
-
       }
-
     } catch (e) {
-
       setState(() {
         isLoading = false;
       });
@@ -149,7 +141,6 @@ class _OtpAuthenticationState extends State<OtpAuthentication> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please Enter Valid OTP")),
       );
-
     }
   }
 
@@ -187,13 +178,11 @@ class _OtpAuthenticationState extends State<OtpAuthentication> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: const Color(0xffF2F2F2),
       body: SafeArea(
         child: Column(
           children: [
-
             const SizedBox(height: 30),
 
             const Text(
@@ -242,61 +231,51 @@ class _OtpAuthenticationState extends State<OtpAuthentication> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-
                   for (var row in [
-                    ["1","2","3"],
-                    ["4","5","6"],
-                    ["7","8","9"],
-                    ["⌫","0","->>"]
+                    ["1", "2", "3"],
+                    ["4", "5", "6"],
+                    ["7", "8", "9"],
+                    ["⌫", "0", "->>"]
                   ])
-
-                  Row(
-                    children: row.map((e){
-
-                      if(e=="⌫"){
-                        return Expanded(
-                          child: buildKey(
-                            e,
-                            onTap: onBackspace,
-                          ),
-                        );
-                      }
-
-                      else if(e=="->>"){
-                        return Expanded(
-                          child: buildKey(
-                            e,
-                            backgroundColor: Colors.blue,
-                            textColor: Colors.white,
-                            onTap: verifyOtp,
-                          ),
-                        );
-                      }
-
-                      else{
-                        return Expanded(
-                          child: buildKey(
-                            e,
-                            onTap: ()=> onOtpTap(e),
-                          ),
-                        );
-                      }
-
-                    }).toList(),
-                  )
-
+                    Row(
+                      children: row.map((e) {
+                        if (e == "⌫") {
+                          return Expanded(
+                            child: buildKey(
+                              e,
+                              onTap: onBackspace,
+                            ),
+                          );
+                        } else if (e == "->>") {
+                          return Expanded(
+                            child: buildKey(
+                              e,
+                              backgroundColor: Colors.blue,
+                              textColor: Colors.white,
+                              onTap: verifyOtp,
+                            ),
+                          );
+                        } else {
+                          return Expanded(
+                            child: buildKey(
+                              e,
+                              onTap: () => onOtpTap(e),
+                            ),
+                          );
+                        }
+                      }).toList(),
+                    )
                 ],
               ),
             ),
 
             const SizedBox(height: 15),
 
-            if(isLoading)
+            if (isLoading)
               const Padding(
                 padding: EdgeInsets.only(bottom: 10),
                 child: CircularProgressIndicator(),
               )
-
           ],
         ),
       ),

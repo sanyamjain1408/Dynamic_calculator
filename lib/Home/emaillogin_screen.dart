@@ -1,9 +1,11 @@
 import 'package:calculator/Home/emailsignup_screen.dart';
+import 'package:calculator/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'OtpAuthentication.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 
 
 class EmailLoginScreen extends StatefulWidget {
@@ -19,13 +21,13 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
   final TextEditingController emailController = TextEditingController();
   bool isLoading = false;
 
-  final String baseUrl = "http://192.168.1.5:8000";
 
   Future<void> saveLogin() async {
 
   final prefs = await SharedPreferences.getInstance();
 
   await prefs.setBool("isLoggedIn", true);
+  
 
 }
 
@@ -46,7 +48,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
       isLoading = true;
     });
 
-    final url = "$baseUrl/ca_app/login/send-otp/";
+    final url = "${ApiConfig.baseUrl}/ca_app/login/send-otp/";
 
     final requestBody ={
       "user email" : email,
@@ -74,6 +76,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
 
       var data = jsonDecode(response.body);
+      
 
       setState(() {
         isLoading = false;

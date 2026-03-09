@@ -35,6 +35,14 @@ dependencies:
   fluttertoast: ^8.0.9
   http: ^1.2.0
   shared_preferences: ^2.2.2
+  share_plus: ^7.2.1
+  dio: ^5.4.0
+  path_provider: ^2.1.2
+  open_file: ^3.3.2
+  pdf: ^3.10.7
+  printing: ^5.12.0
+
+
 
 
   

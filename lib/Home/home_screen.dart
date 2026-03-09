@@ -7,6 +7,7 @@ import 'package:calculator/Home/emaillogin_screen.dart';
 import 'package:calculator/Home/profile/profile_screen.dart';
 import 'package:calculator/Home/second_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import '../widgets/header.dart';
 import '../widgets/bottom_nav.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,11 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
   int currentIndex = 0;
 
   /// ✅ CENTER PAGES LIST
-  final List<Widget> pages = const [
-    CalculatorScreen(), // Calc
-    SecondScreen(), // CA
-    HistoryScreen(), // History
-    ProfileScreen(), // Profile
+  List<Widget> pages = [
+    const CalculatorScreen(),
+    const SecondScreen(),
+    const HistoryScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -59,6 +60,12 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: (index) async {
           // History index = 2
           // Profile index = 3
+
+          if (index == 2) {
+            setState(() {
+              pages[2] = HistoryScreen(key: UniqueKey());
+            });
+          }
 
           if (index == 2 || index == 3) {
             bool isLoggedIn = await checkLogin();

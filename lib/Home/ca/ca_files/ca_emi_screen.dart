@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:calculator/config/app_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 class CaEMIScreen extends StatefulWidget {
   const CaEMIScreen({super.key});
@@ -22,7 +25,6 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
 
   bool isLoading = false;
 
-  final String baseUrl = "http://192.168.1.2:8000";
 
   Future<void> calculateEMI() async {
     FocusScope.of(context).unfocus();
@@ -31,11 +33,16 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
     double interestRate = double.tryParse(_rateController.text) ?? 0;
     double timeInYears = double.tryParse(_timeController.text) ?? 0;
 
-    if (loanAmount <= 0 || interestRate <= 0 || timeInYears <= 0) return;
+    if (loanAmount <= 0 || interestRate <= 0 || timeInYears <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter Valid Values")),
+      );
+      return;
+    }
 
     setState(() => isLoading = true);
 
-    final url = "$baseUrl/ca_app/emi/calculate/";
+    final url = "${ApiConfig.baseUrl}/ca_app/emi/calculate/";
 
     final requestBody = {
       "calculator_type": "emi calculator",
@@ -44,40 +51,45 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
       "time_in_years": timeInYears,
     };
 
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
     print("------------------------- POST REQUEST ---------------------------------");
     print("URL: $url");
     print("BODY: ${jsonEncode(requestBody)}");
+    print("TOKEN: $token");
 
     try {
       final response = await http.post(
         Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
+        headers: {"Content-Type": "application/json", "Authorization": "Token $token"},
         body: jsonEncode(requestBody),
       );
 
-       print("----------------------------- POST RESPONSE -----------------------------");
+      print("----------------------------- POST RESPONSE -----------------------------");
       print("Status Code: ${response.statusCode}");
       print("Response Body: ${response.body}");
-      
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
         final result = data["result"];
 
         setState(() {
-          emi = (result["emi"] ?? 0).toDouble();
+          emi = (result["monthly_emi"] ?? 0).toDouble();
           principalAmount = (result["principal_amount"] ?? 0).toDouble();
           totalInterest = (result["total_interest"] ?? 0).toDouble();
           totalAmount = (result["total_amount"] ?? 0).toDouble();
         });
       } else {
-        print("Post Error: ${response.body}");
+        print("POST Error: ${response.body}");
       }
     } catch (e) {
       print("Connection failed: $e");
     } finally {
       setState(() => isLoading = false);
     }
-  } 
+  }
+ 
 
    @override
   void dispose() {

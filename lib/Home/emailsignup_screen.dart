@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:calculator/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -17,7 +18,7 @@ class _EmailSignupScreenState extends State<EmailsignupScreen> {
 
   bool isLoading = false;
 
-  final String baseUrl = "http://192.168.1.5:8000";
+
 
   Future<void> registerUser() async {
 
@@ -36,7 +37,7 @@ class _EmailSignupScreenState extends State<EmailsignupScreen> {
       isLoading = true;
     });
 
-    final url = "$baseUrl/ca_app/register/";
+    final url = "${ApiConfig.baseUrl}/ca_app/register/";
 
     final requestBody = {
       "name": name,
@@ -90,6 +91,7 @@ class _EmailSignupScreenState extends State<EmailsignupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data["message"] ?? "Error")),
         );
+         
       }
 
     } catch (e) {

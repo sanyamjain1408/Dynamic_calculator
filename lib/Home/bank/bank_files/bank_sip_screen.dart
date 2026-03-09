@@ -1,7 +1,10 @@
-import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';   //  For input formatter
-import 'package:intl/intl.dart';          //  For comma formatting
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'package:calculator/config/app_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BankSipScreen extends StatefulWidget {
   const BankSipScreen({super.key});
@@ -11,98 +14,116 @@ class BankSipScreen extends StatefulWidget {
 }
 
 class _BankSipScreenState extends State<BankSipScreen> {
-
-  //  Controllers for input fields
   final TextEditingController _monthlyController = TextEditingController();
   final TextEditingController _rateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
 
-  //  Result variables
-  double investedAmount = 0;
+  double monthlyinvestedAmount = 0;
+  double totalinvestedAmount = 0;
   double estimatedReturn = 0;
   double totalAmount = 0;
 
-  //  Indian number format (10,00,000)
+  bool isLoading = false;
+
   final NumberFormat indianFormat = NumberFormat('#,##,###');
 
-  //  SIP Calculation Function
-  void calculateSIP() {
-
-    // Hide keyboard
+  Future<void> calculateSIP() async {
     FocusScope.of(context).unfocus();
 
-    //  Remove comma before converting to double
-    double monthlyInvestment =
-        double.tryParse(_monthlyController.text.replaceAll(',', '')) ?? 0;
+    double monthlyInvestment = double.tryParse(_monthlyController.text.replaceAll(',', '')) ?? 0;
 
-    double annualRate =
-        double.tryParse(_rateController.text) ?? 0;
+    double annualRate = double.tryParse(_rateController.text) ?? 0;
 
-    double years =
-        double.tryParse(_timeController.text) ?? 0;
+    double years = double.tryParse(_timeController.text) ?? 0;
 
-    // If invalid input
-    if (monthlyInvestment <= 0 || years <= 0) {
-      setState(() {
-        investedAmount = 0;
-        estimatedReturn = 0;
-        totalAmount = 0;
-      });
+    if (monthlyInvestment <= 0 || annualRate <= 0 || years <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter Valid Values")),
+      );
       return;
     }
 
-    // Total months
-    int months = (years * 12).toInt();
+    setState(() => isLoading = true);
 
-    //  Convert annual rate to monthly rate
-    double monthlyRate = (annualRate / 100) / 12;
+    final url = "${ApiConfig.baseUrl}/ca_app/sip/calculate/";
 
-    double maturityAmount;
+    final requestBody = {
+      "calculator_type": "sip calculator",
+      "monthly_investment": monthlyInvestment,
+      "annual_rate": annualRate,
+      "time_period_years": years
+    };
 
-    // If rate = 0
-    if (monthlyRate == 0) {
-      maturityAmount = monthlyInvestment * months;
-    } else {
-      //  Standard SIP formula
-      maturityAmount = monthlyInvestment *
-          ((pow(1 + monthlyRate, months) - 1) / monthlyRate) *
-          (1 + monthlyRate);
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
+    print("---------------- POST REQUEST ----------------");
+    print("URL: $url");
+    print("BODY: ${jsonEncode(requestBody)}");
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json", "Authorization": "Token $token"},
+        body: jsonEncode(requestBody),
+      );
+
+      print("---------------- POST RESPONSE ----------------");
+      print("Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+        final result = data["result"] ?? {};
+
+        setState(() {
+          monthlyinvestedAmount = (result["monthly_investment"] ?? 0).toDouble();
+          totalinvestedAmount = (result["total_invested"]?? 0).toDouble();
+          estimatedReturn = (result["estimated_return"] ?? 0).toDouble();
+          totalAmount = (result["total_amount"] ?? 0).toDouble();
+        });
+      } else {
+        final error = jsonDecode(response.body);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error["error"] ?? "Calculation Failed")),
+        );
+      }
+    } catch (e) {
+      print("Connection failed: $e");
+    } finally {
+      setState(() => isLoading = false);
     }
-
-    double totalInvested = monthlyInvestment * months;
-    double returns = maturityAmount - totalInvested;
-
-    setState(() {
-      investedAmount = totalInvested;
-      estimatedReturn = returns;
-      totalAmount = maturityAmount;
-    });
   }
 
-  //  UI
+  @override
+  void dispose() {
+    _monthlyController.dispose();
+    _rateController.dispose();
+    _timeController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           "SIP Calculator",
-          style: TextStyle(
-              color: Colors.blue,
-              fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 1,
       ),
       backgroundColor: Colors.grey.shade100,
-
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              //  INPUT CARD
+              /// INPUT CARD
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -113,101 +134,69 @@ class _BankSipScreenState extends State<BankSipScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
-                    // ===== Monthly Investment =====
-                    const Text("Monthly Investment",
-                        style: TextStyle(fontWeight: FontWeight.bold)
-                        ),
-
+                    const Text("Monthly Investment", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-
                     TextField(
                       controller: _monthlyController,
                       keyboardType: TextInputType.number,
-
-                      //  This makes comma auto appear
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         IndianNumberFormatter(),
                       ],
-
                       decoration: const InputDecoration(
                         hintText: "Enter Monthly Amount",
-                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    // ===== Return Rate =====
-                    const Text("Return Rate (% per year)",
-                        style: TextStyle(fontWeight: FontWeight.bold)
-                        ),
-
+                    const Text("Return Rate (% per year)", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-
                     TextField(
                       controller: _rateController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         hintText: "Enter Annual Return Rate",
-                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    // ===== Time =====
-                    const Text("Time Period (Years)",
-                        style: TextStyle(fontWeight: FontWeight.bold)
-                        ),
-                        
+                    const Text("Time Period (Years)", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-
                     TextField(
                       controller: _timeController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         hintText: "Enter Time in Years",
-                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 25),
-
-                    // ===== Calculate Button =====
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                         onPressed: calculateSIP,
-                        child: const Text(
-                          "Calculate SIP",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),
-                        ),
+                        child: isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text(
+                                "Calculate SIP",
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
                       ),
                     ),
-
                   ],
                 ),
               ),
 
               const SizedBox(height: 20),
 
-              //  RESULT CARD
+              /// RESULT CARD
               if (totalAmount > 0)
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -219,7 +208,6 @@ class _BankSipScreenState extends State<BankSipScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       const Text(
                         "SIP Summary",
                         style: TextStyle(
@@ -228,20 +216,16 @@ class _BankSipScreenState extends State<BankSipScreen> {
                           color: Colors.blue,
                         ),
                       ),
-
                       const SizedBox(height: 15),
-
-                      summaryRow("Invested Amount",
-                          indianFormat.format(investedAmount)),
-
-                      summaryRow("Est. Return",
-                          indianFormat.format(estimatedReturn)),
-
+                      summaryRow("Monthly Invested Amount", indianFormat.format(monthlyinvestedAmount)),
+                      summaryRow("Total Invested Amount", indianFormat.format(totalinvestedAmount)),
+                      summaryRow("Est. Return", indianFormat.format(estimatedReturn)),
                       const Divider(height: 25),
-
-                      summaryRow("Total Amount",
-                          indianFormat.format(totalAmount),
-                          isBold: true),
+                      summaryRow(
+                        "Total Amount",
+                        indianFormat.format(totalAmount),
+                        isBold: true,
+                      ),
                     ],
                   ),
                 ),
@@ -252,24 +236,17 @@ class _BankSipScreenState extends State<BankSipScreen> {
     );
   }
 
-  //  Reusable Summary Row
-  Widget summaryRow(String title, String value,
-      {bool isBold = false}) {
+  Widget summaryRow(String title, String value, {bool isBold = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title,
-              style: TextStyle(
-                  fontWeight:
-                      isBold ? FontWeight.bold : FontWeight.normal)),
+          Text(title, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
           Text(
             "₹$value",
             style: TextStyle(
-              fontWeight:
-                  isBold ? FontWeight.bold : FontWeight.normal,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
               color: isBold ? Colors.green : Colors.black,
             ),
           ),
@@ -279,32 +256,23 @@ class _BankSipScreenState extends State<BankSipScreen> {
   }
 }
 
-//  Custom Formatter for Indian Comma
+/// Indian comma formatter
 class IndianNumberFormatter extends TextInputFormatter {
-
   final NumberFormat _formatter = NumberFormat('#,##,###');
 
   @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue,
-      TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
 
-    if (newValue.text.isEmpty) {
-      return newValue;
-    }
-
-    // Remove old commas
     String newText = newValue.text.replaceAll(',', '');
 
     final number = int.parse(newText);
 
-    // Add Indian style comma
     final formatted = _formatter.format(number);
 
     return TextEditingValue(
       text: formatted,
-      selection:
-          TextSelection.collapsed(offset: formatted.length),
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

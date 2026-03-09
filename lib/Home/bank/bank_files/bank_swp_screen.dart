@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; 
-import 'package:intl/intl.dart'; 
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'package:calculator/config/app_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BankSwpScreen extends StatefulWidget {
   const BankSwpScreen({super.key});
@@ -19,46 +22,111 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
   double investedAmount = 0;
   double monthlyWithdrawal = 0;
   double totalWithdrawn = 0;
-  double finalAmount = 0;
+  double totalAmount = 0;
 
-  void calculateSWP() {
+  bool isLoading = false;
+
+  Future<void> calculateSWP() async {
     FocusScope.of(context).unfocus();
 
-    double P = double.tryParse(_investmentController.text) ?? 0;
-    double W = double.tryParse(_withdrawController.text) ?? 0;
-    double r = double.tryParse(_rateController.text) ?? 0;
-    double t = double.tryParse(_timeController.text) ?? 0;
+    double investment = double.tryParse(_investmentController.text.replaceAll(',', '')) ?? 0;
 
-    if (P <= 0 || W <= 0 || r < 0 || t <= 0) {
-      setState(() {
-        investedAmount = 0;
-        monthlyWithdrawal = 0;
-        totalWithdrawn = 0;
-        finalAmount = 0;
-      });
+    double withdrawal = double.tryParse(_withdrawController.text) ?? 0;
+
+    double rate = double.tryParse(_rateController.text) ?? 0;
+
+    double years = double.tryParse(_timeController.text) ?? 0;
+
+    if (investment <= 0 || withdrawal <= 0 || years <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter Valid Values")),
+      );
       return;
     }
 
-    int totalMonths = (t * 12).toInt();
+    setState(() => isLoading = true);
 
-    //  Nominal Monthly Rate (IMPORTANT)
-    double monthlyRate = r / 100 / 12;
+    final url = "${ApiConfig.baseUrl}/ca_app/banking-swp/calculate/";
 
-    double balance = P;
+    final requestBody = {
+      "calculator_type": "swp calculator",
+      "invested_amount": investment,
+      "monthly_withdrawal": withdrawal,
+      "interest_rate": rate,
+      "time_period_years": years
+    };
 
-    for (int i = 0; i < totalMonths; i++) {
-      balance -= W; // Withdrawal at beginning
-      balance += balance * monthlyRate; // Monthly interest
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
+    print("------------ POST REQUEST ------------");
+    print("URL: $url");
+    print("BODY: ${jsonEncode(requestBody)}");
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json", "Authorization": "Token $token"},
+        body: jsonEncode(requestBody),
+      );
+
+      print("------------ POST RESPONSE ------------");
+      print("Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+        final result = data["result"] ?? {};
+
+        if (!mounted) return;
+
+        setState(() {
+          investedAmount = (result["invested_amount"] ?? 0).toDouble();
+          monthlyWithdrawal = (result["monthly_withdrawal"] ?? 0).toDouble();
+          totalWithdrawn = (result["total_withdrawn"] ?? 0).toDouble();
+          totalAmount = (result["total_amount"] ?? 0).toDouble();
+        });
+      } else {
+        final error = jsonDecode(response.body);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error["error"] ?? "Calculation Failed")),
+        );
+      }
+    } catch (e) {
+      print("Connection Error: $e");
+    } finally {
+      if (!mounted) return;
+      setState(() => isLoading = false);
     }
+  }
 
-    if (balance < 0) balance = 0;
+  @override
+  void dispose() {
+    _investmentController.dispose();
+    _withdrawController.dispose();
+    _rateController.dispose();
+    _timeController.dispose();
+    super.dispose();
+  }
 
-    setState(() {
-      investedAmount = P;
-      monthlyWithdrawal = W;
-      totalWithdrawn = W * totalMonths;
-      finalAmount = double.parse(balance.toStringAsFixed(0));
-    });
+  Widget buildRow(String title, double value, {bool isFinal = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: TextStyle(fontWeight: isFinal ? FontWeight.bold : FontWeight.normal)),
+          Text(
+            "₹${value.toStringAsFixed(0)}",
+            style: TextStyle(
+              fontWeight: isFinal ? FontWeight.bold : FontWeight.normal,
+              color: isFinal ? Colors.green : Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -67,16 +135,13 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
       appBar: AppBar(
         title: const Text(
           "SWP Calculator",
-            style: TextStyle(
-              color: Colors.blue,
-              fontWeight: FontWeight.bold)
-              ),
+          style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 1,
       ),
       backgroundColor: Colors.grey.shade100,
-
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: SingleChildScrollView(
@@ -94,82 +159,54 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Total Investment",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text("Total Investment", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _investmentController,
                       keyboardType: TextInputType.number,
-
-                       //  This makes comma auto appear
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         IndianNumberFormatter(),
                       ],
-
                       decoration: const InputDecoration(
                         hintText: "Enter Total Investment",
-                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-
-
-                    const Text("Withdrawal (per month)",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                        
+                    const Text("Withdrawal (per month)", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-
                     TextField(
                       controller: _withdrawController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         hintText: "Enter Monthly Withdrawal",
-                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    const Text("Return Rate (% per year)",
-                        style: TextStyle(fontWeight: FontWeight.bold)
-                        ),
-
+                    const Text("Return Rate (% per year)", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-
                     TextField(
                       controller: _rateController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         hintText: "Enter Annual Return Rate",
-                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    const Text("Time Period (Years)",
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-
+                    const Text("Time Period (Years)", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    
                     TextField(
                       controller: _timeController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         hintText: "Enter Time Period (Years)",
-                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 25),
-
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -181,20 +218,21 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                         onPressed: calculateSWP,
-                        child: const Text(
-                          "Calculate SWP",
-                          style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
+                        child: isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text(
+                                "Calculate SWP",
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
                       ),
                     ),
                   ],
                 ),
               ),
-        
+
               const SizedBox(height: 20),
-        
-              /// SUMMARY
+
+              /// RESULT CARD
               if (investedAmount > 0)
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -208,17 +246,14 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
                     children: [
                       const Text(
                         "SWP Summary",
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
                       ),
                       const SizedBox(height: 15),
                       buildRow("Invested Amount :", investedAmount),
                       buildRow("Withdrawal (P.M) :", monthlyWithdrawal),
                       buildRow("Total Withdrawn :", totalWithdrawn),
                       const Divider(height: 25),
-                      buildRow("Final Amount :", finalAmount, isFinal: true),
+                      buildRow("Total Amount :", totalAmount, isFinal: true),
                     ],
                   ),
                 ),
@@ -228,56 +263,24 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
       ),
     );
   }
-
-  Widget buildRow(String title, double value, {bool isFinal = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title,
-              style: TextStyle(
-                  fontWeight: isFinal ? FontWeight.bold : FontWeight.normal)),
-          Text(
-            "₹${value.toStringAsFixed(0)}",
-            style: TextStyle(
-              fontWeight: isFinal ? FontWeight.bold : FontWeight.normal,
-              color: isFinal ? Colors.green : Colors.black,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-
-//  Custom Formatter for Indian Comma
 class IndianNumberFormatter extends TextInputFormatter {
-
   final NumberFormat _formatter = NumberFormat('#,##,###');
 
   @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue,
-      TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
 
-    if (newValue.text.isEmpty) {
-      return newValue;
-    }
-
-    // Remove old commas
     String newText = newValue.text.replaceAll(',', '');
 
     final number = int.parse(newText);
 
-    // Add Indian style comma
     final formatted = _formatter.format(number);
 
     return TextEditingValue(
       text: formatted,
-      selection:
-          TextSelection.collapsed(offset: formatted.length),
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

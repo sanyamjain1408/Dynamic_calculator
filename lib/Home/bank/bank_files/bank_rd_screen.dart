@@ -44,7 +44,7 @@ class _BankRdScreenState extends State<BankRdScreen> {
 
     setState(() => isLoading = true);
 
-    final url = "${ApiConfig.baseUrl}/ca_app/fd/calculate/";
+    final url = "${ApiConfig.baseUrl}/ca_app/rd/calculate/";
 
     final requestBody = {
       "calculator_type": "rd calculator",
@@ -74,16 +74,16 @@ class _BankRdScreenState extends State<BankRdScreen> {
       print("Status Code: ${response.statusCode}");
       print("Response Body: ${response.body}");
 
-      if (response.statusCode == 200 && response.statusCode < 300) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
         final result = data["result"] ?? {};
 
         if (!mounted) return;
 
         setState(() {
-          investedAmount = (data["invested_amount"] ?? 0).toDouble();
-          estimatedReturn = (data["estimated_return"] ?? 0).toDouble();
-          totalAmount = (data["total_amount"] ?? 0).toDouble();
+          investedAmount = (result["invested_amount"] ?? 0).toDouble();
+          estimatedReturn = (result["estimated_return"] ?? 0).toDouble();
+          totalAmount = (result["total_amount"] ?? 0).toDouble();
         });
       } else {
         final error = jsonDecode(response.body);

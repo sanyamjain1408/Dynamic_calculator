@@ -8,6 +8,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -16,10 +18,30 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
+class IndianNumberFormatter extends TextInputFormatter {
+  final NumberFormat _formatter = NumberFormat('#,##,###');
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+
+    String newText = newValue.text.replaceAll(',', '');
+
+    final number = int.parse(newText);
+    final formatted = _formatter.format(number);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 class _HistoryScreenState extends State<HistoryScreen> {
   List historyList = [];
   bool isLoading = true;
 
+  final NumberFormat indianFormat = NumberFormat('#,##,###');
 
   @override
   void initState() {
@@ -133,7 +155,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ],
             ),
             const SizedBox(height: 5),
-            Text(item["total_amount"]?.toString() ?? ""),
+            Text(
+              "Amount : ₹${indianFormat.format(double.tryParse(item["total_amount"].toString())?.round() ?? 0)}",
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [

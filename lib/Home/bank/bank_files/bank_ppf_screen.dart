@@ -1,7 +1,10 @@
+import 'package:calculator/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'dart:math';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BankPpfScreen extends StatefulWidget {
   const BankPpfScreen({super.key});
@@ -10,13 +13,11 @@ class BankPpfScreen extends StatefulWidget {
   State<BankPpfScreen> createState() => _BankPpfScreenState();
 }
 
-// Indian Number Formatter
 class IndianNumberFormatter extends TextInputFormatter {
   final NumberFormat _formatter = NumberFormat('#,##,###');
 
   @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     if (newValue.text.isEmpty) return newValue;
 
     String newText = newValue.text.replaceAll(',', '');
@@ -31,7 +32,6 @@ class IndianNumberFormatter extends TextInputFormatter {
   }
 }
 
-
 class _BankPpfScreenState extends State<BankPpfScreen> {
   final TextEditingController _investmentController = TextEditingController();
   final TextEditingController _rateController = TextEditingController();
@@ -43,39 +43,95 @@ class _BankPpfScreenState extends State<BankPpfScreen> {
   double estimatedReturn = 0;
   double totalAmount = 0;
 
+  bool isLoading = false;
+
   final NumberFormat indianFormat = NumberFormat('#,##,###');
 
-  void calculatePPF() {
+  Future<void> calculatePPF() async {
     FocusScope.of(context).unfocus();
 
-    double investment =
-        double.tryParse(_investmentController.text.replaceAll(',', '')) ?? 0;
-
+    double investment = double.tryParse(_investmentController.text.replaceAll(',', '')) ?? 0;
     double rate = double.tryParse(_rateController.text) ?? 0;
-
     double years = double.tryParse(_timeController.text) ?? 0;
 
-    if (investment <= 0 || rate <= 0 || years <= 0) return;
+    if (investment <= 0 || rate <= 0 || years <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter Valid Values")),
+      );
+      return;
+    }
 
-    double r = rate / 100;
+    setState(() => isLoading = true);
 
-    double yearlyInvestment =
-        selectedFrequency == "Monthly" ? investment * 12 : investment;
+    final url = "${ApiConfig.baseUrl}/ca_app/ppf/calculate/";
 
-    // 🔥 PPF Correct Formula (Annuity Due)
-    double maturityAmount =
-        yearlyInvestment * ((pow((1 + r), years) - 1) / r) * (1 + r);
+    final requestBody = {
+      "calculator_type": "ppf calculator",
+      "total_investment": investment,
+      "return_rate": rate,
+      "time_in_years": years,
+      "frequency": selectedFrequency.toLowerCase()
+    };
 
-    double totalInvested = yearlyInvestment * years;
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
 
-    double returns = maturityAmount - totalInvested;
+    print("------------ POST REQUEST ------------");
+    print("URL: $url");
+    print("BODY: ${jsonEncode(requestBody)}");
 
-    setState(() {
-      investedAmount = totalInvested;
-      estimatedReturn = returns;
-      totalAmount = maturityAmount;
-    });
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Token $token"},
+        body: jsonEncode(requestBody),
+      );
+
+      print("------------ POST RESPONSE ------------");
+      print("Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+
+      if (response.statusCode >= 200  && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+        final result = data["data"] ?? {};
+
+        if (!mounted) return;
+
+        setState(() {
+          investedAmount = (result["total_invested"] ?? 0).toDouble();
+          estimatedReturn = (result["estimated_return"] ?? 0).toDouble();
+          totalAmount = (result["total_amount"] ?? 0).toDouble();
+        });
+      } else {
+        final error = jsonDecode(response.body);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Calculation failed")),
+        );
+      }
+    } catch (e) {
+      print("Connection Error: $e");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Server connection failed")),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => isLoading = false);
+    }
   }
+
+  @override
+  void dispose() {
+    _investmentController.dispose();
+    _rateController.dispose();
+    _timeController.dispose();
+    super.dispose();
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -85,22 +141,20 @@ class _BankPpfScreenState extends State<BankPpfScreen> {
           "PPF Calculator",
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.blue),
+             color: Colors.blue),
         ),
         elevation: 0,
         centerTitle: true,
         backgroundColor: Colors.white,
       ),
       backgroundColor: Colors.grey.shade200,
-
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-
-              // INPUT CARD
+              /// INPUT CARD
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -111,72 +165,44 @@ class _BankPpfScreenState extends State<BankPpfScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
-                    const Text("Total Investment",
-                    style: TextStyle(fontWeight: FontWeight.bold)
-                    ),
-
+                    const Text("Investment", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-
                     TextField(
                       controller: _investmentController,
                       keyboardType: TextInputType.number,
-
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         IndianNumberFormatter(),
                       ],
-
                       decoration: const InputDecoration(
-                        hintText: "Enter Total Investment",
-                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
+                        hintText: "Enter Investment Amount",
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    const Text("Return Rate (%)",
-                     style: TextStyle(fontWeight: FontWeight.bold)
-                     ),
-
+                    const Text("Return Rate (%)", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-
                     TextField(
                       controller: _rateController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         hintText: "Enter Annual Return Rate",
-                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    const Text("Time Period (Years)",
-                    style: TextStyle(fontWeight: FontWeight.bold)
-                    ),
-
+                    const Text("Time Period (Years)", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-
                     TextField(
                       controller: _timeController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         hintText: "Enter Time Period in Years",
-                        hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    const Text("Frequency",
-                    style: TextStyle(fontWeight: FontWeight.bold)
-                    ),
+                    const Text("Frequency", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       value: selectedFrequency,
@@ -201,9 +227,7 @@ class _BankPpfScreenState extends State<BankPpfScreen> {
                         });
                       },
                     ),
-
                     const SizedBox(height: 25),
-
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -217,18 +241,17 @@ class _BankPpfScreenState extends State<BankPpfScreen> {
                         ),
                         child: const Text(
                           "Calculate PPF",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-        
+
               const SizedBox(height: 25),
-        
-              // RESULT CARD
+
+              /// RESULT CARD
               if (totalAmount > 0)
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -243,19 +266,15 @@ class _BankPpfScreenState extends State<BankPpfScreen> {
                       const Text(
                         "PPF Summary",
                         style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                           fontWeight: FontWeight.bold,
                             color: Colors.blue),
                       ),
                       const SizedBox(height: 15),
-                      summaryRow("Invested Amount",
-                          indianFormat.format(investedAmount.round())),
-                      summaryRow("Est. Return",
-                          indianFormat.format(estimatedReturn.round())),
+                      summaryRow("Invested Amount", indianFormat.format(investedAmount.round())),
+                      summaryRow("Est. Return", indianFormat.format(estimatedReturn.round())),
                       const Divider(height: 25),
-                      summaryRow("Total Amount",
-                          indianFormat.format(totalAmount.round()),
-                          isBold: true),
+                      summaryRow("Total Amount", indianFormat.format(totalAmount.round()), isBold: true),
                     ],
                   ),
                 ),

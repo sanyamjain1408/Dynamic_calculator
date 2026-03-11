@@ -78,7 +78,8 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
     try {
       final response = await http.post(
         Uri.parse(url),
-        headers: {"Content-Type": "application/json", "Authorization": "Token $token"},
+        headers: {"Content-Type": "application/json", 
+        "Authorization": "Token $token"},
         body: jsonEncode(requestBody),
       );
 
@@ -172,7 +173,10 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
       appBar: AppBar(
         title: const Text(
           "Paint Cost Calculator",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+             color: Colors.blue
+             ),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
@@ -184,6 +188,7 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
+
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -312,6 +317,7 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
               // result card
               if (volume > 0 || totalCost > 0)
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
@@ -323,7 +329,9 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
                     children: [
                       const Text(
                         "Paint Cost Summary",
-                        style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.blue,
+                           fontWeight: FontWeight.bold),
                       ),
                       const Divider(),
                       summaryRow("Volume of paint needed :", "${volume.toStringAsFixed(2)}"),

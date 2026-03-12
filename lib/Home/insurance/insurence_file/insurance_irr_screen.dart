@@ -1,6 +1,9 @@
-import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:calculator/config/app_config.dart';
 
 class InsuranceIrrScreen extends StatefulWidget {
   const InsuranceIrrScreen({super.key});
@@ -18,6 +21,8 @@ class _InsuranceIrrScreenState extends State<InsuranceIrrScreen> {
 
   double irrResult = double.nan;
   double netCashFlow = 0.0;
+
+  bool isLoading = false;
 
   final formatter = NumberFormat('#,##,##0');
 
@@ -38,12 +43,15 @@ class _InsuranceIrrScreenState extends State<InsuranceIrrScreen> {
   void dispose() {
     investmentController.dispose();
     investmentFocusNode.dispose();
+
     for (var c in cashFlowControllers) {
       c.dispose();
     }
+
     for (var f in focusNodes) {
       f.dispose();
     }
+
     super.dispose();
   }
 
@@ -78,69 +86,72 @@ class _InsuranceIrrScreenState extends State<InsuranceIrrScreen> {
     );
   }
 
-  // ✅ Stable IRR Calculation (Bisection Method)
-  double? calculateIRR(List<double> cashFlows) {
-    double low = -0.9999;
-    double high = 10.0;
-    double mid = 0.0;
-
-    double npv(double rate) {
-      double total = 0.0;
-      for (int t = 0; t < cashFlows.length; t++) {
-        total += cashFlows[t] / pow((1 + rate), t);
-      }
-      return total;
-    }
-
-    if (npv(low) * npv(high) > 0) {
-      return null;
-    }
-
-    for (int i = 0; i < 1000; i++) {
-      mid = (low + high) / 2;
-      double value = npv(mid);
-
-      if (value.abs() < 0.00001) {
-        return mid * 100;
-      }
-
-      if (npv(low) * value < 0) {
-        high = mid;
-      } else {
-        low = mid;
-      }
-    }
-
-    return mid * 100;
-  }
-
-  void calculate() {
+  Future<void> calculate() async {
     FocusScope.of(context).unfocus();
+
+    double investment = double.tryParse(investmentController.text.replaceAll(',', '')) ?? 0;
 
     List<double> cashFlows = [];
 
-    double investment =
-        double.tryParse(investmentController.text.replaceAll(',', '')) ?? 0;
-
-    cashFlows.add(-investment);
-
-    double totalCashInflow = 0;
-
     for (var controller in cashFlowControllers) {
-      double value =
-          double.tryParse(controller.text.replaceAll(',', '')) ?? 0;
+      double value = double.tryParse(controller.text.replaceAll(',', '')) ?? 0;
 
       cashFlows.add(value);
-      totalCashInflow += value;
     }
 
-    netCashFlow = totalCashInflow - investment;
+    final url = "${ApiConfig.baseUrl}/ca_app/irr/calculate/";
 
-    final irr = calculateIRR(cashFlows);
+    final requestBody = {
+      "initial_investment": investment, 
+      "cash_flows": cashFlows};
 
-    irrResult = irr ?? double.nan;
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
 
-    setState(() {});
+    setState(() {
+      isLoading = true;
+    });
+
+    print("------------ POST REQUEST ------------");
+    print("URL: $url");
+    print("BODY: ${jsonEncode(requestBody)}");
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json", "Authorization": "Token $token"},
+        body: jsonEncode(requestBody),
+      );
+
+      print("------------ POST RESPONSE ------------");
+      print("Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+
+        if (!mounted) return;
+
+        setState(() {
+          irrResult = (data["irr_result"] ?? double.nan).toDouble();
+          netCashFlow = (data["total_amount"] ?? 0).toDouble();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Calculation failed")),
+        );
+      }
+    } catch (e) {
+      print("Connection Error: $e");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Server connection failed")),
+      );
+    }
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Widget buildTextField({
@@ -154,10 +165,8 @@ class _InsuranceIrrScreenState extends State<InsuranceIrrScreen> {
       child: TextField(
         controller: controller,
         focusNode: focusNode,
-        keyboardType:
-            const TextInputType.numberWithOptions(signed: true),
-        textInputAction:
-            nextFocusNode != null ? TextInputAction.next : TextInputAction.done,
+        keyboardType: const TextInputType.numberWithOptions(signed: true),
+        textInputAction: nextFocusNode != null ? TextInputAction.next : TextInputAction.done,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(
@@ -207,8 +216,7 @@ class _InsuranceIrrScreenState extends State<InsuranceIrrScreen> {
                   buildTextField(
                     controller: investmentController,
                     focusNode: investmentFocusNode,
-                    nextFocusNode:
-                        focusNodes.isNotEmpty ? focusNodes[0] : null,
+                    nextFocusNode: focusNodes.isNotEmpty ? focusNodes[0] : null,
                     label: "Initial Investment",
                   ),
                   const SizedBox(height: 10),
@@ -220,9 +228,7 @@ class _InsuranceIrrScreenState extends State<InsuranceIrrScreen> {
                       return buildTextField(
                         controller: cashFlowControllers[index],
                         focusNode: focusNodes[index],
-                        nextFocusNode: index < focusNodes.length - 1
-                            ? focusNodes[index + 1]
-                            : null,
+                        nextFocusNode: index < focusNodes.length - 1 ? focusNodes[index + 1] : null,
                         label: "Cash Flow Year ${index + 1}",
                       );
                     },
@@ -233,36 +239,36 @@ class _InsuranceIrrScreenState extends State<InsuranceIrrScreen> {
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
-                        ),
                           onPressed: addCashFlowField,
-                          child: const Text("ADD",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),),
+                          child: const Text(
+                            "ADD",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 20),
                       Expanded(
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                          onPressed: calculate,
-                          child: const Text("Calculate IRR",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),),
+                          onPressed: isLoading ? null : calculate,
+                          child: isLoading
+                              ? const CircularProgressIndicator(color: Colors.white)
+                              : const Text(
+                                  "Calculate IRR",
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
                         ),
                       ),
                     ],
@@ -283,16 +289,11 @@ class _InsuranceIrrScreenState extends State<InsuranceIrrScreen> {
                 children: [
                   const Text(
                     "Internal Rate Of Return",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    irrResult.isNaN
-                        ? "IRR Not Possible"
-                        : "${irrResult.toStringAsFixed(2)}%",
+                    irrResult.isNaN ? "IRR Not Possible" : "${irrResult.toStringAsFixed(2)}%",
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -306,10 +307,7 @@ class _InsuranceIrrScreenState extends State<InsuranceIrrScreen> {
                   const SizedBox(height: 20),
                   const Text(
                     "Net Profit / Loss",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
                   ),
                   const SizedBox(height: 5),
                   Text(
@@ -317,8 +315,7 @@ class _InsuranceIrrScreenState extends State<InsuranceIrrScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color:
-                          netCashFlow < 0 ? Colors.red : Colors.green,
+                      color: netCashFlow < 0 ? Colors.red : Colors.green,
                     ),
                   ),
                 ],

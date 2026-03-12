@@ -7,6 +7,7 @@ import 'package:calculator/Home/emaillogin_screen.dart';
 import 'package:calculator/Home/profile/profile_screen.dart';
 import 'package:calculator/Home/second_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import '../widgets/header.dart';
 import '../widgets/bottom_nav.dart';
@@ -39,47 +40,55 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
+    return WillPopScope(
+      onWillPop: () async {
+        SystemNavigator.pop();
 
-      /// 🔒 HEADER (STATIC)
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70),
-        child: AppHeader(scaffoldKey: _scaffoldKey),
-      ),
+        return true;
+      },
+      
+      child: Scaffold(
+        key: _scaffoldKey,
 
-      /// 🔁 ONLY CENTER CONTENT CHANGES
-      body: IndexedStack(
-        index: currentIndex,
-        children: pages,
-      ),
+        /// 🔒 HEADER (STATIC)
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(70),
+          child: AppHeader(scaffoldKey: _scaffoldKey),
+        ),
 
-      /// 🔒 FOOTER (STATIC)
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: currentIndex,
-        onTap: (index) async {
-          // History index = 2
-          // Profile index = 3
+        /// 🔁 ONLY CENTER CONTENT CHANGES
+        body: IndexedStack(
+          index: currentIndex,
+          children: pages,
+        ),
 
-          if (index == 2) {
-            setState(() {
-              pages[2] = HistoryScreen(key: UniqueKey());
-            });
-          }
+        /// 🔒 FOOTER (STATIC)
+        bottomNavigationBar: AppBottomNav(
+          currentIndex: currentIndex,
+          onTap: (index) async {
+            // History index = 2
+            // Profile index = 3
 
-          if (index == 2 || index == 3) {
-            bool isLoggedIn = await checkLogin();
-
-            if (!isLoggedIn) {
-              showLoginDialog(index);
-              return; // yaha se stop ho jayega
+            if (index == 2) {
+              setState(() {
+                pages[2] = HistoryScreen(key: UniqueKey());
+              });
             }
-          }
 
-          setState(() {
-            currentIndex = index;
-          });
-        },
+            if (index == 2 || index == 3) {
+              bool isLoggedIn = await checkLogin();
+
+              if (!isLoggedIn) {
+                showLoginDialog(index);
+                return; // yaha se stop ho jayega
+              }
+            }
+
+            setState(() {
+              currentIndex = index;
+            });
+          },
+        ),
       ),
     );
   }
@@ -94,8 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return const SizedBox();
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curved =
-            CurvedAnimation(parent: animation, curve: Curves.easeInOut);
+        final curved = CurvedAnimation(parent: animation, curve: Curves.easeInOut);
 
         return ScaleTransition(
           scale: curved,
@@ -117,16 +125,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         context,
                         PageRouteBuilder(
                           transitionDuration: const Duration(milliseconds: 500),
-                          pageBuilder: (_, animation, secondaryAnimation) =>
-                               EmailLoginScreen(
-                                onLoginSuccess: (){
-                                  setState(() {
-                                    currentIndex = index;
-                                  });
-                                },
-                               ),
-                          transitionsBuilder:
-                              (_, animation, secondaryAnimation, child) {
+                          pageBuilder: (_, animation, secondaryAnimation) => EmailLoginScreen(
+                            onLoginSuccess: () {
+                              setState(() {
+                                currentIndex = index;
+                              });
+                            },
+                          ),
+                          transitionsBuilder: (_, animation, secondaryAnimation, child) {
                             return SlideTransition(
                               position: Tween(
                                 begin: const Offset(1, 0),

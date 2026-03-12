@@ -1,5 +1,6 @@
 import 'package:calculator/Home/bank/bank_screen.dart';
 import 'package:calculator/Home/ca/ca_screen.dart';
+import 'package:calculator/Home/home_screen.dart';
 import 'package:calculator/Home/insurance/insurance_screen.dart';
 import 'package:calculator/Home/property/property_screen.dart';
 import 'package:flutter/material.dart';
@@ -17,7 +18,12 @@ class _SecondScreenState extends State<SecondScreen> {
   Widget build(BuildContext context)  {
     return WillPopScope(
       onWillPop: () async {
-        Navigator.pop(context);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const HomeScreen(),
+          ),
+        );
         return false;
       },
       child: Scaffold(

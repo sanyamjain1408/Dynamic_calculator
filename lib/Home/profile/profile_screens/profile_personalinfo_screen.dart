@@ -77,7 +77,10 @@ class _ProfilePersonalinfoScreenState extends State<ProfilePersonalinfoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Personal Info"),
+        title: const Text(
+          "Personal Info",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ), 
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),

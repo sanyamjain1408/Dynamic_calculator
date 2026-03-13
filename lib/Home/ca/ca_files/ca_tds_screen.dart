@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:calculator/config/app_config.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
@@ -11,6 +13,29 @@ class CaTdsScreen extends StatefulWidget {
   @override
   State<CaTdsScreen> createState() => _CaTdsScreenState();
 }
+
+
+/// Indian comma formatter
+class IndianNumberFormatter extends TextInputFormatter {
+  final NumberFormat _formatter = NumberFormat('#,##,###');
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+
+    String newText = newValue.text.replaceAll(',', '');
+
+    final number = int.parse(newText);
+
+    final formatted = _formatter.format(number);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 
 class _CaTdsScreenState extends State<CaTdsScreen> {
 
@@ -23,10 +48,12 @@ class _CaTdsScreenState extends State<CaTdsScreen> {
 
   bool isLoading = false;
 
+  final NumberFormat indianFormat = NumberFormat('#,##,###');
+
 Future<void> calculateTDS() async {
     FocusScope.of(context).unfocus();
 
-    double amount = double.tryParse(_amountController.text) ?? 0;
+    double amount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0;
 
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -134,6 +161,10 @@ Future<void> calculateTDS() async {
                     TextField(
                       controller: _amountController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        IndianNumberFormatter(),
+                      ],
                       decoration: const InputDecoration(
                         hintText: "Enter Amount",
                         hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
@@ -223,7 +254,7 @@ Future<void> calculateTDS() async {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text("Net Amount :"),
-                          Text("₹${netAmount.toStringAsFixed(2)}"),
+                          Text("₹${indianFormat.format(netAmount)}"),
                         ],
                       ),
 
@@ -234,7 +265,7 @@ Future<void> calculateTDS() async {
                         children: [
                           Text("TDS (${selectedTdsRate}%):"),
                           Text(
-                            "₹${tdsAmount.toStringAsFixed(2)}",
+                            "₹${indianFormat.format(tdsAmount)}",
                             style: const TextStyle(color: Colors.red),
                           ),
                         ],
@@ -250,7 +281,7 @@ Future<void> calculateTDS() async {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            "₹${totalAmount.toStringAsFixed(2)}",
+                            "₹${indianFormat.format(totalAmount)}",
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.green,

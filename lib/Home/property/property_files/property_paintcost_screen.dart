@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:calculator/config/app_config.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PropertyPaintcostScreen extends StatefulWidget {
@@ -9,6 +11,27 @@ class PropertyPaintcostScreen extends StatefulWidget {
 
   @override
   State<PropertyPaintcostScreen> createState() => _PropertyPaintcostScreenState();
+}
+
+/// Indian comma formatter
+class IndianNumberFormatter extends TextInputFormatter {
+  final NumberFormat _formatter = NumberFormat('#,##,###');
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+
+    String newText = newValue.text.replaceAll(',', '');
+
+    final number = int.parse(newText);
+
+    final formatted = _formatter.format(number);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
 }
 
 class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
@@ -21,6 +44,8 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
   String costUnit = "Liter";
 
   bool isLoading = false;
+
+  final NumberFormat indianFormat = NumberFormat('#,##,###');
 
   double volume = 0;
   double totalCost = 0;
@@ -42,9 +67,9 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
   Future<void> calculatePaintCost() async {
      FocusScope.of(context).unfocus();
 
-    double area = double.tryParse(areaController.text) ?? 0;
-    double efficiency = double.tryParse(efficiencyController.text) ?? 0;
-    double cost = double.tryParse(costController.text) ?? 0;
+    double area = double.tryParse(areaController.text.replaceAll(',', '')) ?? 0;
+    double efficiency = double.tryParse(efficiencyController.text.replaceAll(',', '')) ?? 0;
+    double cost = double.tryParse(costController.text.replaceAll(',', '')) ?? 0;
 
     if (area <= 0 || efficiency <= 0 || cost <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -202,7 +227,7 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
                     /// TOTAL AREA
                     ///
                    const Text(
-                    "Enter Total Area",
+                    "Total Area",
                      style: TextStyle(
                       fontWeight: FontWeight.bold)
                     ),
@@ -212,8 +237,12 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
                     TextField(
                       controller: areaController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        IndianNumberFormatter(),
+                      ],
                       decoration: InputDecoration(
-                        labelText: "Total Area",
+                        labelText: "Enter Total Area",
                         suffixIconConstraints: const BoxConstraints(minWidth: 0),
                         suffixIcon: Padding(
                           padding: const EdgeInsets.only(right: 8),
@@ -232,7 +261,7 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
                     const SizedBox(height: 20),
 
                     const Text(
-                      "Enter Paint Efficiency",
+                      "Paint Efficiency",
                        style: TextStyle(
                         fontWeight: FontWeight.bold)
                         ),
@@ -243,8 +272,12 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
                     TextField(
                       controller: efficiencyController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        IndianNumberFormatter(),
+                      ],
                       decoration: InputDecoration(
-                        labelText: "Paint Efficiency",
+                        labelText: "Enter Paint Efficiency",
                         suffixIcon: Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: dropdown(efficiencyUnit, unitTypes, (val) {
@@ -262,7 +295,7 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
                     const SizedBox(height: 20),
 
                     const Text(
-                      "Enter Cost per Unit", 
+                      "Cost per Unit", 
                       style: TextStyle(
                         fontWeight: FontWeight.bold)),
 
@@ -272,8 +305,12 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
                     TextField(
                       controller: costController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        IndianNumberFormatter(),
+                      ],
                       decoration: InputDecoration(
-                        labelText: "Cost per Unit",
+                        labelText: "Enter Cost per Unit",
                         suffixIcon: Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: dropdown(costUnit, unitTypes, (val) {
@@ -335,7 +372,7 @@ class _PropertyPaintcostScreenState extends State<PropertyPaintcostScreen> {
                       ),
                       const Divider(),
                       summaryRow("Volume of paint needed :", "${volume.toStringAsFixed(2)}"),
-                      summaryRow("Total cost :", totalCost.toStringAsFixed(0)),
+                      summaryRow("Total cost :", "₹ ${indianFormat.format(totalCost)}"),
                     ],
                   ),
                 )

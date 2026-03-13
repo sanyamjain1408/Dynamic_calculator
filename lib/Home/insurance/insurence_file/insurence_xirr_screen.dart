@@ -107,6 +107,8 @@ class _InsurenceXirrScreenState extends State<InsurenceXirrScreen> {
 
   /// CALCULATE (API CALL)
   Future<void> calculate() async {
+    FocusScope.of(context).unfocus();
+    
     if (startDate == null ||
         endDate == null ||
         maturityDate == null ||

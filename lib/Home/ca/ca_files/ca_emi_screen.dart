@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:calculator/config/app_config.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
@@ -11,6 +13,29 @@ class CaEMIScreen extends StatefulWidget {
   @override
   State<CaEMIScreen> createState() => _CaEMIScreenState();
 }
+
+
+/// Indian comma formatter
+class IndianNumberFormatter extends TextInputFormatter {
+  final NumberFormat _formatter = NumberFormat('#,##,###');
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+
+    String newText = newValue.text.replaceAll(',', '');
+
+    final number = int.parse(newText);
+
+    final formatted = _formatter.format(number);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 
 class _CaEMIScreenState extends State<CaEMIScreen> {
 
@@ -25,11 +50,13 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
 
   bool isLoading = false;
 
+  final NumberFormat indianFormat = NumberFormat('#,##,###');
+
 
   Future<void> calculateEMI() async {
     FocusScope.of(context).unfocus();
 
-    double loanAmount = double.tryParse(_loanController.text) ?? 0;
+    double loanAmount = double.tryParse(_loanController.text.replaceAll(',', '')) ?? 0;
     double interestRate = double.tryParse(_rateController.text) ?? 0;
     double timeInYears = double.tryParse(_timeController.text) ?? 0;
 
@@ -142,6 +169,10 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
                     TextField(
                       controller: _loanController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        IndianNumberFormatter(),
+                      ],
                       decoration: const InputDecoration(
                         hintText: "Enter Loan Amount",
                         hintStyle: TextStyle(fontWeight: FontWeight.w400, color: Colors.grey,),
@@ -243,7 +274,7 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
                         children: [
                           const Text("Monthly EMI :"),
                           Text(
-                            "₹${emi.toStringAsFixed(2)}",
+                            "₹${indianFormat.format(emi)}",
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -255,7 +286,7 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text("Principal Amount :"),
-                          Text("₹${principalAmount.toStringAsFixed(0)}"),
+                          Text("₹${indianFormat.format(principalAmount)}"),
                         ],
                       ),
 
@@ -266,7 +297,7 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
                         children: [
                           const Text("Total Interest :"),
                           Text(
-                            "₹${totalInterest.toStringAsFixed(0)}",
+                            "₹${indianFormat.format(totalInterest)}",
                           ),
                         ],
                       ),
@@ -281,7 +312,7 @@ class _CaEMIScreenState extends State<CaEMIScreen> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            "₹${totalAmount.toStringAsFixed(0)}",
+                            "₹${indianFormat.format(totalAmount)}",
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.green,

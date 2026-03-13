@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:calculator/config/app_config.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PropertyElectricityScreen extends StatefulWidget {
@@ -10,6 +12,28 @@ class PropertyElectricityScreen extends StatefulWidget {
   @override
   State<PropertyElectricityScreen> createState() => _PropertyElectricityScreenState();
 }
+
+/// Indian comma formatter
+class IndianNumberFormatter extends TextInputFormatter {
+  final NumberFormat _formatter = NumberFormat('#,##,###');
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+
+    String newText = newValue.text.replaceAll(',', '');
+
+    final number = int.parse(newText);
+
+    final formatted = _formatter.format(number);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 
 class _PropertyElectricityScreenState extends State<PropertyElectricityScreen> {
   final TextEditingController powerController = TextEditingController();
@@ -25,6 +49,8 @@ class _PropertyElectricityScreenState extends State<PropertyElectricityScreen> {
 
   bool isLoading = false;
 
+  final NumberFormat indianFormat = NumberFormat('#,##,###');
+
   List<String> powerType = ["Watts", "KW",  "MW", "GW"];
 
   List<String> timeType = ["Hrs", "Day", "Month", "Year"];
@@ -32,9 +58,9 @@ class _PropertyElectricityScreenState extends State<PropertyElectricityScreen> {
   Future<void> calculateElectricity() async {
     FocusScope.of(context).unfocus();
 
-    double power = double.tryParse(powerController.text) ?? 0;
-    double energy = double.tryParse(energyController.text) ?? 0;
-    double time = double.tryParse(timeController.text) ?? 0;
+    double power = double.tryParse(powerController.text.replaceAll(',', '')) ?? 0;
+    double energy = double.tryParse(energyController.text.replaceAll(',', '')) ?? 0;
+    double time = double.tryParse(timeController.text.replaceAll(',', '')) ?? 0;
 
     if (power <= 0 || energy <= 0 || time <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -50,11 +76,11 @@ class _PropertyElectricityScreenState extends State<PropertyElectricityScreen> {
     final url = "${ApiConfig.baseUrl}/ca_app/electricity/calculate/";
 
     final requestBody = {
-      "power_consumption": powerController.text,
+      "power_consumption": power,
       "power_unit": powerUnit,
-      "energy_price": energyController.text,
+      "energy_price": energy,
       "energy_unit": energyUnit,
-      "usage_time": timeController.text,
+      "usage_time": time,
       "time_unit": timeUnit
     };
 
@@ -106,7 +132,7 @@ class _PropertyElectricityScreenState extends State<PropertyElectricityScreen> {
 
   @override
   void dispose() {
-    powerConsumed.toDouble();
+    powerController.dispose();
     energyController.dispose();
     timeController.dispose();
     super.dispose();
@@ -195,6 +221,10 @@ class _PropertyElectricityScreenState extends State<PropertyElectricityScreen> {
                     TextField(
                       controller: powerController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        IndianNumberFormatter(),
+                      ],
                       decoration: InputDecoration(
                         labelText: "Enter Power Consumption",
                         suffixIconConstraints: const BoxConstraints(minWidth: 0),
@@ -221,13 +251,17 @@ class _PropertyElectricityScreenState extends State<PropertyElectricityScreen> {
                     TextField(
                       controller: energyController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        IndianNumberFormatter(),
+                      ],
                       decoration: InputDecoration(
                         labelText: "Enter Energy Price",
                         suffixIcon: Padding(
                           padding: const EdgeInsets.only(right: 8),
-                          child: dropdown(powerUnit, powerType, (val) {
+                          child: dropdown(energyUnit, powerType, (val) {
                             setState(() {
-                              powerUnit = val!;
+                              energyUnit = val!;
                             });
                           }),
                         ),
@@ -246,6 +280,10 @@ class _PropertyElectricityScreenState extends State<PropertyElectricityScreen> {
                     TextField(
                       controller: timeController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        IndianNumberFormatter(),
+                      ],
                       decoration: InputDecoration(
                         labelText: "Udage Time",
                         suffixIcon: Padding(
@@ -307,8 +345,8 @@ class _PropertyElectricityScreenState extends State<PropertyElectricityScreen> {
                         style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
                       ),
                       const Divider(),
-                      summaryRow("Volume of paint needed :", "${powerConsumed.toStringAsFixed(2)}"),
-                      summaryRow("Total cost :", "${totalCost.toStringAsFixed(0)}"),
+                      summaryRow("Power Consumed :", indianFormat.format(powerConsumed)),
+                      summaryRow("Total cost :", "₹ ${indianFormat.format(totalCost)}"),
                     ],
                   ),
                 )

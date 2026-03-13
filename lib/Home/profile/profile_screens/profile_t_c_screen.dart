@@ -17,9 +17,7 @@ class _ProfileTCScreenState extends State<ProfileTCScreen> {
           "Terms & Conditions",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.black,
+        
       ),
       body: const SingleChildScrollView(
         padding: EdgeInsets.all(20),

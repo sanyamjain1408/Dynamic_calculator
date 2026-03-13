@@ -26,12 +26,14 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
 
   bool isLoading = false;
 
+  final NumberFormat indianFormat = NumberFormat('#,##,##0');
+
   Future<void> calculateSWP() async {
     FocusScope.of(context).unfocus();
 
     double investment = double.tryParse(_investmentController.text.replaceAll(',', '')) ?? 0;
 
-    double withdrawal = double.tryParse(_withdrawController.text) ?? 0;
+    double withdrawal = double.tryParse(_withdrawController.text.replaceAll(',', '')) ?? 0;
 
     double rate = double.tryParse(_rateController.text) ?? 0;
 
@@ -118,7 +120,7 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
         children: [
           Text(title, style: TextStyle(fontWeight: isFinal ? FontWeight.bold : FontWeight.normal)),
           Text(
-            "₹${value.toStringAsFixed(0)}",
+            "₹${indianFormat.format(value)}",
             style: TextStyle(
               fontWeight: isFinal ? FontWeight.bold : FontWeight.normal,
               color: isFinal ? Colors.green : Colors.black,
@@ -179,6 +181,10 @@ class _BankSwpScreenState extends State<BankSwpScreen> {
                     TextField(
                       controller: _withdrawController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        IndianNumberFormatter(),
+                      ],
                       decoration: const InputDecoration(
                         hintText: "Enter Monthly Withdrawal",
                         border: OutlineInputBorder(),

@@ -20,7 +20,10 @@ class _ProfileHelpScreenState extends State<ProfileHelpScreen> with SingleTicker
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Help Center"),
+        title: const Text(
+          "Help Center",
+          style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         bottom: TabBar(
           controller: tabController,
           tabs: const [

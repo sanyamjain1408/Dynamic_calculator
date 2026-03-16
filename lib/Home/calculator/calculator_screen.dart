@@ -13,6 +13,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   String result = '0';
   bool isResultShown = false;
 
+  int maxDigits = 15;
+
   void onButtonTap(String value) {
     setState(() {
       if (value == 'AC') {
@@ -51,10 +53,15 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
           input += value;
         } else {
-          // Agar number ya dot hai
+          // max digit check
+          String cleanInput = input.replaceAll(RegExp(r'[^\d]'), '');
+
+          if (cleanInput.length >= maxDigits) {
+            return;
+          }
+
           input += value;
 
-          // Last number ko format karo
           List<String> parts = input.split(RegExp(r'([+\-×÷])'));
 
           String lastPart = parts.last;
@@ -66,8 +73,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               double.parse(lastPart.replaceAll(',', '')),
             );
 
-            input =
-                input.substring(0, input.length - lastPart.length) + formatted;
+            input = input.substring(0, input.length - lastPart.length) + formatted;
           }
         }
       }
